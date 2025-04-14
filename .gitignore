@@ -1,0 +1,137 @@
+# Байт-скомпилированные / оптимизированные / DLL файлы
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C расширения
+*.so
+
+# Дистрибуция / пакеты
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Логи инсталлятора
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Юнит-тесты / отчеты о покрытии
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Переводы
+*.mo
+*.pot
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# Документация
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#   По аналогии с Pipfile.lock, обычно рекомендуется включать в версионный контроль.
+#   Однако, в шаблонах развертывания, могут быть установлены опции,
+#   из-за которых Pipfile.lock не будет коммититься.
+#Pipfile.lock
+
+# PEP 582; используется, например, github.com/David-OConnor/pyflow
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Среды
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Настройки проекта Spyder
+.spyderproject
+.spyproject
+
+# Настройки проекта Rope
+.ropeproject
+
+# mkdocs документация
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Файлы БД SQLite
+*.db
+*.sqlite3
+
+# Локальные настройки IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Файлы ОС
+.DS_Store
+Thumbs.db 
