@@ -12,4 +12,5 @@ class LessonType(BaseModel):
     
     # Связи
     lessons = relationship("Lesson", back_populates="lesson_type")
-    subscription_templates = relationship("SubscriptionLessonType", back_populates="lesson_type") 
+    subscription_templates = relationship("SubscriptionLessonType", back_populates="lesson_type")
+    teachers = relationship("TeacherLessonType", back_populates="lesson_type")

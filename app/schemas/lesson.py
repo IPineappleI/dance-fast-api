@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from app.schemas.group import GroupFullInfo
 from app.schemas.lesson_type import LessonTypeInfo
 from app.schemas.classroom import ClassroomInfo
-from app.schemas.association import GroupTeacherBase, GroupStudentBase
+from app.schemas.association import LessonStudentBase, LessonTeacherBase
 import uuid
 from typing import Optional, List
 from datetime import datetime
@@ -52,6 +52,8 @@ class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeInfo
     classroom: ClassroomInfo
     group: GroupFullInfo
+    #students: List[LessonStudentBase]
+    teachers: List[LessonTeacherBase]
 
     class Config:
         from_attributes = True

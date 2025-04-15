@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from app.database import get_db
@@ -62,9 +62,15 @@ async def get_all_lessons(skip: int = 0, limit: int = 100, db: Session = Depends
     return lessons
 
 
+# TODO: fix teachers join
 @router.get("/full-info", response_model=List[schemas.LessonFullInfo])
 async def get_all_lessons_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    lessons = db.query(models.Lesson).offset(skip).limit(limit).all()
+    lessons = db.query(models.Lesson).options(
+            joinedload(models.Lesson.teachers).joinedload(models.TeacherLesson.teacher)
+        ).offset(skip).limit(limit).all()
+    print('test')
+    for l in lessons:
+        print(l.teachers)
     return lessons
 
 

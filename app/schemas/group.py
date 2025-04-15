@@ -1,9 +1,8 @@
 from pydantic import BaseModel
 from app.schemas.level import LevelInfo
-from app.schemas.association import GroupTeacherBase, GroupStudentBase
 import uuid
 from typing import Optional, List
-from datetime import datetime
+from app.schemas.association import GroupTeacherBase, GroupStudentBase
 
 
 class GroupBase(BaseModel):

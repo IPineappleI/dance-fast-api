@@ -59,4 +59,14 @@ class SubscriptionLessonType(Base):
 
     # Связи
     subscription_template = relationship("SubscriptionTemplate", back_populates="lesson_types")
-    lesson_type = relationship("LessonType", back_populates="subscription_templates") 
+    lesson_type = relationship("LessonType", back_populates="subscription_templates")
+
+class TeacherLessonType(Base):
+    __tablename__ = "teacher_lesson_types"
+
+    teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.id"), primary_key=True)
+    lesson_type_id = Column(UUID(as_uuid=True), ForeignKey("lesson_types.id"), primary_key=True)
+
+    # Связи
+    teacher = relationship("Teacher", back_populates="lesson_types")
+    lesson_type = relationship("LessonType", back_populates="teachers")

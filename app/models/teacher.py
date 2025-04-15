@@ -14,4 +14,5 @@ class Teacher(BaseModel):
     user = relationship("User", back_populates="teacher")
     slots = relationship("Slot", back_populates="teacher")
     lessons = relationship("TeacherLesson", back_populates="teacher")
-    groups = relationship("TeacherGroup", back_populates="teacher") 
+    groups = relationship("TeacherGroup", back_populates="teacher")
+    lesson_types = relationship("TeacherLessonType", back_populates="teacher")

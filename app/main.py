@@ -30,8 +30,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Dance Studio API",
-    description="API для мобильного приложения школы танцев",
-    version="0.1.0",
+    description="API для клиент-серверного приложения школы танцев",
+    version="0.2.0",
     lifespan=lifespan
 )
 

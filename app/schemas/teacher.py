@@ -2,7 +2,7 @@ import uuid
 from typing import List, Optional
 from pydantic import BaseModel
 from app.schemas.user import UserBase
-from app.schemas.association import MemberGroupBase
+from app.schemas.association import MemberGroupBase, TeacherLessonTypeBase
 
 
 class TeacherBase(BaseModel):
@@ -36,9 +36,17 @@ class TeacherGroupInfo(TeacherInfo):
         from_attributes = True
 
 
+class TeacherLessonInfo(TeacherInfo):
+    user: UserBase
+
+    class Config:
+        from_attributes = True
+
+
 class TeacherFullInfo(TeacherInfo):
     user: UserBase
     groups: List[MemberGroupBase]
+    lesson_types: List[TeacherLessonTypeBase]
 
     class Config:
         from_attributes = True

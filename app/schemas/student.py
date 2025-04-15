@@ -39,6 +39,14 @@ class StudentGroupInfo(StudentInfo):
         from_attributes = True
 
 
+class StudentLessonInfo(StudentInfo):
+    user: UserBase
+    level: LevelInfo
+
+    class Config:
+        from_attributes = True
+
+
 class StudentFullInfo(StudentInfo):
     user: UserBase
     level: LevelInfo
