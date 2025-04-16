@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 import uuid
 from app.models.base import BaseModel
 
+
 class Student(BaseModel):
     __tablename__ = "students"
 
@@ -16,4 +17,13 @@ class Student(BaseModel):
     level = relationship("Level", back_populates="students")
     groups = relationship("StudentGroup", back_populates="student")
     subscriptions = relationship("Subscription", back_populates="student")
-    
+    lessons = relationship(
+        "Lesson",
+        secondary="join(LessonSubscription, Subscription, "
+            "LessonSubscription.subscription_id == Subscription.id)",
+        primaryjoin="Student.id == Subscription.student_id",
+        secondaryjoin="LessonSubscription.lesson_id == Lesson.id",
+        viewonly=True,
+        overlaps="subscriptions",
+        back_populates="actual_students"
+    )

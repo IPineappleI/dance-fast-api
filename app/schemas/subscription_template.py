@@ -1,8 +1,9 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel
+from typing import Optional, List
 from datetime import datetime
 import uuid
 import decimal
+from app.schemas.association import SubscriptionLessonTypeBase
 
 
 class SubscriptionTemplateBase(BaseModel):
@@ -34,6 +35,13 @@ class SubscriptionTemplateUpdate(BaseModel):
     expiration_day_count: Optional[int] = None
     price: Optional[decimal.Decimal] = None
     active: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionTemplateFullInfo(SubscriptionTemplateInfo):
+    lesson_types: List[SubscriptionLessonTypeBase]
 
     class Config:
         from_attributes = True

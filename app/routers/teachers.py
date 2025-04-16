@@ -1,14 +1,12 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
-from app.models import LessonType
+
 
 router = APIRouter(
     prefix="/teachers",
@@ -30,8 +28,7 @@ async def create_teacher(
         )
 
     teacher = models.Teacher(
-        user_id=teacher_data.user_id,
-        created_at=datetime.now(timezone.utc)
+        user_id=teacher_data.user_id
     )
 
     db.add(teacher)

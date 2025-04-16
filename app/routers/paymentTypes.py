@@ -22,8 +22,7 @@ async def create_payment_type(
         db: Session = Depends(get_db)
 ):
     payment_type = models.PaymentType(
-        name=payment_type_data.name,
-        created_at=datetime.now(timezone.utc)
+        name=payment_type_data.name
     )
 
     db.add(payment_type)

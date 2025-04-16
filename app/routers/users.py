@@ -47,8 +47,7 @@ async def create_user(
         middle_name=user_data.middle_name,
         last_name=user_data.last_name,
         description=user_data.description,
-        phone_number=user_data.phone_number,
-        created_at=datetime.now(timezone.utc)
+        phone_number=user_data.phone_number
     )
 
     db.add(user)

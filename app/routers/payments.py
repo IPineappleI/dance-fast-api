@@ -34,8 +34,7 @@ async def create_payment(
 
     payment = models.Payment(
         payment_type_id=payment_data.payment_type_id,
-        details=payment_data.details,
-        created_at=datetime.now(timezone.utc),
+        details=payment_data.details
     )
 
     db.add(payment)

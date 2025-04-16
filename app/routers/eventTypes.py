@@ -23,8 +23,7 @@ async def create_event_type(
 ):
     event_type = models.EventType(
         name=event_type_data.name,
-        description=event_type_data.description,
-        created_at=datetime.now(timezone.utc)
+        description=event_type_data.description
     )
 
     db.add(event_type)

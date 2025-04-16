@@ -23,8 +23,7 @@ async def create_lesson_type(
 ):
     lesson_type = models.LessonType(
         name=lesson_type_data.name,
-        description=lesson_type_data.description,
-        created_at=datetime.now(timezone.utc)
+        description=lesson_type_data.description
     )
 
     db.add(lesson_type)

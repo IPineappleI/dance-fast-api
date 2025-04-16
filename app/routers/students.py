@@ -12,7 +12,7 @@ from app.auth.jwt import get_current_active_user, get_current_admin
 router = APIRouter(
     prefix="/students",
     tags=["students"],
-    responses={404: {"description": "Студент не найден"}}
+    responses={404: {"description": "Ученик не найден"}}
 )
 
 
@@ -24,21 +24,20 @@ async def create_student(
     user = db.query(models.User).filter(models.User.id == student_data.user_id).first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Пользователя с идентификатором {student_data.user_id} не существует",
         )
 
     level = db.query(models.Level).filter(models.Level.id == student_data.level_id).first()
     if not level:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Уровня подготовки с идентификатором {student_data.level_id} не существует",
         )
 
     student = models.Student(
         user_id=student_data.user_id,
-        level_id=student_data.level_id,
-        created_at=datetime.now(timezone.utc)
+        level_id=student_data.level_id
     )
 
     db.add(student)
@@ -66,7 +65,7 @@ async def get_student_by_id(student_id: uuid.UUID, db: Session = Depends(get_db)
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Студент не найден"
+            detail="Ученик не найден"
         )
     return student
 
@@ -77,7 +76,7 @@ async def get_student_full_info_by_id(student_id: uuid.UUID, db: Session = Depen
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Студент не найден"
+            detail="Ученик не найден"
         )
 
     return student
@@ -89,14 +88,14 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Студент не найден"
+            detail="Ученик не найден"
         )
 
     if student_data.user_id:
         user = db.query(models.User).filter(models.User.id == student_data.user_id).first()
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Пользователь не найден",
             )
 
@@ -104,13 +103,62 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
         level = db.query(models.Level).filter(models.Level.id == student_data.level_id).first()
         if not level:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Уровень не найден",
             )
 
     for field, value in student_data.model_dump(exclude_unset=True).items():
         setattr(student, field, value)
 
+    db.commit()
+    db.refresh(student)
+
+    return student
+
+
+@router.post("/groups/{student_id}/{group_id}", response_model=schemas.StudentFullInfo,
+             status_code=status.HTTP_201_CREATED)
+async def create_student_group(
+        student_id: uuid.UUID,
+        group_id: uuid.UUID,
+        db: Session = Depends(get_db)
+):
+    student = db.query(models.Student).options().filter(models.Student.id == student_id).first()
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ученик не найден"
+        )
+
+    group = db.query(models.Group).filter(models.Group.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Группа не найдена"
+        )
+    if len(group.students) >= group.max_capacity:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="В группе нет свободных мест"
+        )
+
+    existing_group = db.query(models.StudentGroup).filter(
+        models.StudentGroup.student_id == student_id,
+        models.StudentGroup.group_id == group_id
+    ).first()
+
+    if existing_group:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ученик уже связан с этой группой"
+        )
+
+    student_group = models.StudentGroup(
+        student_id=student_id,
+        group_id=group_id
+    )
+
+    db.add(student_group)
     db.commit()
     db.refresh(student)
 

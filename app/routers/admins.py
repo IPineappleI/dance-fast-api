@@ -29,8 +29,7 @@ async def create_admin(
         )
 
     admin = models.Admin(
-        user_id=admin_data.user_id,
-        created_at=datetime.now(timezone.utc)
+        user_id=admin_data.user_id
     )
 
     db.add(admin)

@@ -38,8 +38,7 @@ async def create_slot(
         teacher_id=slot_data.teacher_id,
         day_of_week=slot_data.day_of_week,
         start_time=slot_data.start_time,
-        end_time=slot_data.end_time,
-        created_at=datetime.now(timezone.utc)
+        end_time=slot_data.end_time
     )
 
     db.add(slot)

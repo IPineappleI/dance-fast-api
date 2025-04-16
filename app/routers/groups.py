@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,7 +6,6 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
 
 router = APIRouter(
     prefix="/groups",
@@ -32,8 +30,7 @@ async def create_group(
         name=group_data.name,
         description=group_data.description,
         max_capacity=group_data.max_capacity,
-        level_id=group_data.level_id,
-        created_at=datetime.now(timezone.utc)
+        level_id=group_data.level_id
     )
 
     db.add(group)

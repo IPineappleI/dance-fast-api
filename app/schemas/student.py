@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from app.schemas.user import UserBase, UserCreate
 from app.schemas.level import LevelInfo
 from typing import List, Optional
+from app.schemas.association import MemberGroupBase
 
 
 class StudentBase(BaseModel):
@@ -50,7 +51,7 @@ class StudentLessonInfo(StudentInfo):
 class StudentFullInfo(StudentInfo):
     user: UserBase
     level: LevelInfo
-    groups: "List[MemberGroupBase]"
+    groups: List[MemberGroupBase]
 
     class Config:
         from_attributes = True
@@ -68,8 +69,3 @@ class StudentResponse(UserBase):
 
     class Config:
         from_attributes = True
-
-
-from app.schemas.association import MemberGroupBase
-
-StudentFullInfo.model_rebuild()

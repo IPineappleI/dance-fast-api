@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
@@ -7,7 +6,7 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
+from app.models import Lesson, Student
 
 router = APIRouter(
     prefix="/lessons",
@@ -21,21 +20,21 @@ async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(g
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_data.lesson_type_id).first()
     if not lesson_type:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Стиля танца с идентификатором {lesson_data.lesson_type_id} не существует",
         )
 
     classroom = db.query(models.Classroom).filter(models.Classroom.id == lesson_data.classroom_id).first()
     if not classroom:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Зала с идентификатором {lesson_data.classroom_id} не существует",
         )
 
     group = db.query(models.Group).filter(models.Group.id == lesson_data.group_id).first()
     if not group:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Группы с идентификатором {lesson_data.group_id} не существует",
         )
 
@@ -62,15 +61,9 @@ async def get_all_lessons(skip: int = 0, limit: int = 100, db: Session = Depends
     return lessons
 
 
-# TODO: fix teachers join
 @router.get("/full-info", response_model=List[schemas.LessonFullInfo])
 async def get_all_lessons_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    lessons = db.query(models.Lesson).options(
-            joinedload(models.Lesson.teachers).joinedload(models.TeacherLesson.teacher)
-        ).offset(skip).limit(limit).all()
-    print('test')
-    for l in lessons:
-        print(l.teachers)
+    lessons = db.query(models.Lesson).offset(skip).limit(limit).all()
     return lessons
 
 
@@ -85,7 +78,7 @@ async def get_lesson_by_id(lesson_id: uuid.UUID, db: Session = Depends(get_db)):
     return lessons
 
 
-@router.get("/full-info/{lessons_id}", response_model=schemas.LessonFullInfo)
+@router.get("/full-info/{lesson_id}", response_model=schemas.LessonFullInfo)
 async def get_lesson_full_info_by_id(lesson_id: uuid.UUID, db: Session = Depends(get_db)):
     lessons = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lessons:
@@ -113,7 +106,7 @@ async def patch_lesson(
         lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_data.lesson_type_id).first()
         if not lesson_type:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Тип занятия не найден",
             )
 
@@ -121,7 +114,7 @@ async def patch_lesson(
         classroom = db.query(models.Classroom).filter(models.Classroom.id == lesson_data.classroom_id).first()
         if not classroom:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Зал не найден",
             )
 
@@ -129,28 +122,14 @@ async def patch_lesson(
         group = db.query(models.Group).filter(models.Group.id == lesson_data.group_id).first()
         if not group:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Группа не найдена",
             )
 
-    if lesson_data.group_id:
-        group = db.query(models.Group).filter(models.Group.id == lesson_data.group_id).first()
-        if not group:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Группа не найдена",
-            )
-
-    if lesson_data.start_time and lesson_data.start_time >= datetime.now(timezone.utc):
+    if lesson_data.start_time >= lesson_data.finish_time:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Указано невалидное время начала занятия"
-        )
-
-    if lesson_data.finish_time and datetime.now(timezone.utc) <= lesson_data.finish_time <= lesson_data.start_time:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Указано невалидное время конца занятия"
+            detail="Начало занятия должно быть раньше его конца"
         )
 
     for field, value in lesson_data.model_dump(exclude_unset=True).items():

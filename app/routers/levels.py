@@ -23,8 +23,7 @@ async def create_level(
 ):
     level = models.Level(
         name=level_data.name,
-        description=level_data.description,
-        created_at=datetime.now(timezone.utc)
+        description=level_data.description
     )
 
     db.add(level)

@@ -38,8 +38,7 @@ async def create_event(
         name=event_data.name,
         description=event_data.description,
         start_time=event_data.start_time,
-        photo_url=event_data.photo_url,
-        created_at=datetime.now(timezone.utc)
+        photo_url=event_data.photo_url
     )
 
     db.add(event)

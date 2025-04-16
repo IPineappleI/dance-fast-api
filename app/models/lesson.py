@@ -23,5 +23,15 @@ class Lesson(BaseModel):
     lesson_type = relationship("LessonType", back_populates="lessons")
     classroom = relationship("Classroom", back_populates="lessons")
     group = relationship("Group", back_populates="lessons")
-    teachers = relationship("TeacherLesson", back_populates="lesson")
-    subscriptions = relationship("LessonSubscription", back_populates="lesson") 
+    actual_teachers = relationship("TeacherLesson", back_populates="lesson")
+    subscriptions = relationship("LessonSubscription", back_populates="lesson")
+    actual_students = relationship(
+        "Student",
+        secondary="join(LessonSubscription, Subscription, "
+            "LessonSubscription.subscription_id == Subscription.id)",
+        primaryjoin="Lesson.id == LessonSubscription.lesson_id",
+        secondaryjoin="Subscription.student_id == Student.id",
+        viewonly=True,
+        overlaps="subscriptions",
+        back_populates="lessons"
+    )

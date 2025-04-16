@@ -42,8 +42,7 @@ async def register(user_data: StudentCreate, db: Session = Depends(get_db)):
         middle_name=user_data.middle_name,
         description=user_data.description,
         phone_number=user_data.phone_number,
-        is_active=True,
-        created_at=datetime.now(timezone.utc)
+        is_active=True
     )
     new_user.role = "student"
     new_user.level_name = db.query(Level).filter(Level.id == user_data.level_id).first().name

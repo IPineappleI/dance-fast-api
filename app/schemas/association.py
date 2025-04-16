@@ -1,10 +1,8 @@
 from pydantic import BaseModel
-from datetime import datetime
 
 
 class GroupStudentBase(BaseModel):
     student: "StudentGroupInfo"
-    join_date: datetime
 
     class Config:
         from_attributes = True
@@ -45,6 +43,13 @@ class LessonStudentBase(BaseModel):
         from_attributes = True
 
 
+class SubscriptionLessonTypeBase(BaseModel):
+    lesson_type: "LessonTypeInfo"
+
+    class Config:
+        from_attributes = True
+
+
 from app.schemas.student import StudentGroupInfo, StudentLessonInfo
 from app.schemas.teacher import TeacherGroupInfo, TeacherLessonInfo
 from app.schemas.group import GroupFullInfo
@@ -56,3 +61,4 @@ MemberGroupBase.model_rebuild()
 TeacherLessonTypeBase.model_rebuild()
 LessonTeacherBase.model_rebuild()
 LessonStudentBase.model_rebuild()
+SubscriptionLessonTypeBase.model_rebuild()

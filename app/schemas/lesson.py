@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+
+from app.schemas import StudentLessonInfo
 from app.schemas.group import GroupFullInfo
 from app.schemas.lesson_type import LessonTypeInfo
 from app.schemas.classroom import ClassroomInfo
@@ -52,8 +54,8 @@ class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeInfo
     classroom: ClassroomInfo
     group: GroupFullInfo
-    #students: List[LessonStudentBase]
-    teachers: List[LessonTeacherBase]
+    actual_students: List[StudentLessonInfo]
+    actual_teachers: List[LessonTeacherBase]
 
     class Config:
         from_attributes = True

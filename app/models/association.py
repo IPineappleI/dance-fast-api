@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Boolean, DateTime
+from sqlalchemy import Column, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -13,7 +13,7 @@ class TeacherLesson(Base):
 
     # Связи
     teacher = relationship("Teacher", back_populates="lessons")
-    lesson = relationship("Lesson", back_populates="teachers")
+    lesson = relationship("Lesson", back_populates="actual_teachers")
 
 
 class TeacherGroup(Base):
@@ -32,7 +32,6 @@ class StudentGroup(Base):
 
     student_id = Column(UUID(as_uuid=True), ForeignKey("students.id"), primary_key=True)
     group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), primary_key=True)
-    join_date = Column(DateTime(timezone=True), nullable=True)
 
     # Связи
     student = relationship("Student", back_populates="groups")
