@@ -10,7 +10,7 @@ class SubscriptionBase(BaseModel):
     """Базовая схема шаблона подписки."""
     student_id: uuid.UUID
     subscription_template_id: uuid.UUID
-    expiration_date: datetime
+    expiration_date: str | None = None
     payment_id: uuid.UUID
 
     class Config:

@@ -12,7 +12,7 @@ class Event(BaseModel):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     start_time = Column(DateTime(timezone=True), nullable=False)
-    photo_url = Column(String, nullable=False)
+    photo_url = Column(String, nullable=True)
     terminated = Column(Boolean, default=False, nullable=True)
 
     # Связи

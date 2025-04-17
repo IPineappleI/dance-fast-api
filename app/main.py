@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import engine, Base, init_db
-# Явно импортируем все модели
 from app.routers import users, auth, events, eventTypes, classrooms, subscription_templates, paymentTypes, payments, \
-    subscription, slots, students, levels, teachers, lessonTypes, groups, admins, lessons
+    subscription, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test
 import os
+
 
 print("Запуск приложения...")
 print(f"DATABASE_URL в окружении: {os.getenv('DATABASE_URL')}")
@@ -62,17 +62,12 @@ app.include_router(subscription_templates.router)
 app.include_router(payments.router)
 app.include_router(paymentTypes.router)
 app.include_router(slots.router)
+app.include_router(test.router)
 
 
 @app.get("/")
 async def root():
     return {
         "message": "Добро пожаловать в API для школы танцев!",
-        "docs": "/docs",
-        "endpoints": [
-            "/auth",
-            "/users"
-            "/events"
-            "/eventTypes"
-        ]
+        "docs": "/docs"
     }

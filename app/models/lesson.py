@@ -27,9 +27,9 @@ class Lesson(BaseModel):
     subscriptions = relationship("LessonSubscription", back_populates="lesson")
     actual_students = relationship(
         "Student",
+        primaryjoin="Lesson.id == LessonSubscription.lesson_id",
         secondary="join(LessonSubscription, Subscription, "
             "LessonSubscription.subscription_id == Subscription.id)",
-        primaryjoin="Lesson.id == LessonSubscription.lesson_id",
         secondaryjoin="Subscription.student_id == Student.id",
         viewonly=True,
         overlaps="subscriptions",
