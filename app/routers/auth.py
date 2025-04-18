@@ -103,6 +103,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user), d
         joinedload(Student.subscriptions).joinedload(Subscription.payment).joinedload(Payment.payment_type)
     ).filter(Student.user_id == current_user.id).first()
     if student:
+        student.role = "student"
         return student
 
     teacher = db.query(Teacher).options(
@@ -111,10 +112,12 @@ async def read_users_me(current_user: User = Depends(get_current_active_user), d
         joinedload(Teacher.lesson_types).joinedload(TeacherLessonType.lesson_type)
     ).filter(Teacher.user_id == current_user.id).first()
     if teacher:
+        teacher.role = "teacher"
         return teacher
 
     admin = db.query(Admin).options(joinedload(Admin.user)).filter(Admin.user_id == current_user.id).first()
     if admin:
+        admin.role = "admin"
         return admin
 
     raise HTTPException(
