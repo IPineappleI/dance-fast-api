@@ -8,7 +8,7 @@ import uuid
 class LevelBase(BaseModel):
     """Базовая схема уровня."""
     name: str
-    description: str | None = None
+    description: Optional[str] = None
 
     class Config:
         from_attributes = True

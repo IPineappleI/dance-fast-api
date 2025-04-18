@@ -11,8 +11,8 @@ class SubscriptionTemplateBase(BaseModel):
     name: str
     description: Optional[str] = None
     lesson_count: int
-    expiration_date: datetime
-    expiration_day_count: int
+    expiration_date: Optional[datetime] = None
+    expiration_day_count: Optional[int] = None
     price: decimal.Decimal
     active: bool
 

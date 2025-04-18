@@ -9,7 +9,7 @@ class EventBase(BaseModel):
     """Базовая схема мероприятия."""
     event_type_id: uuid.UUID
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     start_time: datetime
     photo_url: str
 
@@ -28,7 +28,7 @@ class EventInfo(EventBase):
 class EventUpdate(BaseModel):
     event_type_id: Optional[uuid.UUID] = None
     name: Optional[str] = None
-    description: Optional[str | None] = None
+    description: Optional[str] = None
     start_time: Optional[datetime] = None
     photo_url: Optional[str] = None
     terminated: Optional[bool] = None

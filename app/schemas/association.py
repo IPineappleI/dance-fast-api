@@ -16,7 +16,7 @@ class GroupTeacherBase(BaseModel):
 
 
 class MemberGroupBase(BaseModel):
-    group: "GroupFullInfo"
+    group: "GroupInfo"
 
     class Config:
         from_attributes = True
@@ -52,7 +52,7 @@ class SubscriptionLessonTypeBase(BaseModel):
 
 from app.schemas.student import StudentGroupInfo, StudentLessonInfo
 from app.schemas.teacher import TeacherGroupInfo, TeacherLessonInfo
-from app.schemas.group import GroupFullInfo
+from app.schemas.group import GroupInfo
 from app.schemas.lesson_type import LessonTypeInfo
 
 GroupStudentBase.model_rebuild()

@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 
 from app.schemas import StudentLessonInfo
-from app.schemas.group import GroupFullInfo
+from app.schemas.group import GroupInfo
 from app.schemas.lesson_type import LessonTypeInfo
 from app.schemas.classroom import ClassroomInfo
-from app.schemas.association import LessonStudentBase, LessonTeacherBase
+from app.schemas.association import LessonTeacherBase
 import uuid
 from typing import Optional, List
 from datetime import datetime
@@ -53,7 +53,7 @@ class LessonUpdate(LessonBase):
 class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeInfo
     classroom: ClassroomInfo
-    group: GroupFullInfo
+    group: GroupInfo
     actual_students: List[StudentLessonInfo]
     actual_teachers: List[LessonTeacherBase]
 

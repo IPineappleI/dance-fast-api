@@ -26,7 +26,7 @@ class GroupInfo(GroupBase):
 
 class GroupUpdate(BaseModel):
     name: Optional[str] = None
-    description: Optional[str | None] = None
+    description: Optional[str] = None
     level_id: Optional[uuid.UUID] = None
     max_capacity: Optional[int] = None
     terminated: Optional[bool] = None

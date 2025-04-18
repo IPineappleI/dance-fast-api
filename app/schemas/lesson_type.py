@@ -7,7 +7,7 @@ import uuid
 class LessonTypeBase(BaseModel):
     """Базовая схема типа платежа."""
     name: str
-    description: str | None = None
+    description: Optional[str] = None
 
     class Config:
         from_attributes = True

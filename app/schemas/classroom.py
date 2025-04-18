@@ -6,7 +6,7 @@ from typing import Optional
 class ClassroomBase(BaseModel):
     """Базовая схема зала."""
     name: str
-    description: str | None = None
+    description: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -22,7 +22,7 @@ class ClassroomInfo(ClassroomBase):
 
 class ClassroomUpdate(BaseModel):
     name: Optional[str] = None
-    description: Optional[str | None] = None
+    description: Optional[str] = None
     terminated: Optional[bool] = None
 
     class Config:

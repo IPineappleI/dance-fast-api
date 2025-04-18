@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -8,7 +9,8 @@ import uuid
 class PaymentBase(BaseModel):
     """Базовая схема платежа."""
     payment_type_id: uuid.UUID
-    details: str | None = None
+    details: Optional[str] = None
+    created_at: datetime
 
     class Config:
         from_attributes = True
