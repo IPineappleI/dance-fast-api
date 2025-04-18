@@ -18,7 +18,7 @@ router = APIRouter(
 async def create_test_data(db: Session = Depends(get_db)):
     user_admin = models.User(
         email="max@admin.com",
-        hashed_password=get_password_hash("13371337"),
+        hashed_password=get_password_hash("12345678"),
         first_name="Максим",
         last_name="Исмаилов",
         middle_name="Джабраилович",
@@ -71,7 +71,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner2 = models.User(
         email="beginner2@student.com",
-        hashed_password=get_password_hash("87654321"),
+        hashed_password=get_password_hash("12345678"),
         first_name="Максим",
         last_name="Максимов",
         middle_name="Максимович",
@@ -242,7 +242,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_advanced1 = models.User(
         email="advanced1@student.com",
-        hashed_password=get_password_hash("42424242"),
+        hashed_password=get_password_hash("12345678"),
         first_name="Аристарх",
         last_name="Свирилов",
         middle_name="Архипович",
@@ -302,7 +302,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_teacher1 = models.User(
         email="teacher@teacher.com",
-        hashed_password=get_password_hash("semensemenych"),
+        hashed_password=get_password_hash("12345678"),
         first_name="Семён",
         last_name="Павлов",
         middle_name="Семёнович",
@@ -321,7 +321,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_teacher2 = models.User(
         email="teacher2@teacher.com",
-        hashed_password=get_password_hash("password123"),
+        hashed_password=get_password_hash("12345678"),
         first_name="Ульяна",
         last_name="Полейко",
         middle_name="Михайловна",
@@ -340,7 +340,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_teacher3 = models.User(
         email="teacher3@teacher.com",
-        hashed_password=get_password_hash("underground"),
+        hashed_password=get_password_hash("12345678"),
         first_name="Станислав",
         last_name="Филиппов",
         middle_name="Ильич",
