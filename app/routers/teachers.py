@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -11,7 +11,7 @@ from app.routers.users import patch_user
 router = APIRouter(
     prefix="/teachers",
     tags=["teachers"],
-    responses={404: {"description": "Преподаватель не найден"}}
+    responses={404: {"description": "Преподаватель не найден"}, 204: {"description": "Связь уже удалена"}}
 )
 
 
@@ -134,6 +134,42 @@ async def create_teacher_lesson_type(
     return teacher
 
 
+@router.delete("/lesson-types/{teacher_id}/{lesson_type_id}")
+async def delete_teacher_lesson_type(
+        teacher_id: uuid.UUID,
+        lesson_type_id: uuid.UUID,
+        response: Response,
+        db: Session = Depends(get_db)
+):
+    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Преподаватель не найден"
+        )
+
+    lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
+    if not lesson_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Стиль танца не найден"
+        )
+
+    existing_lesson_type = db.query(models.TeacherLessonType).filter(
+        models.TeacherLessonType.teacher_id == teacher_id,
+        models.TeacherLessonType.lesson_type_id == lesson_type_id
+    ).first()
+
+    if not existing_lesson_type:
+        response.status_code=status.HTTP_204_NO_CONTENT
+        return "Преподаватель не связан с этим стилем танца"
+
+    db.delete(existing_lesson_type)
+    db.commit()
+
+    return "Стиль танца преподавателя удалён успешно"
+
+
 @router.post("/groups/{teacher_id}/{group_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_teacher_group(
@@ -178,6 +214,42 @@ async def create_teacher_group(
     return teacher
 
 
+@router.delete("/groups/{teacher_id}/{group_id}")
+async def delete_teacher_group(
+        teacher_id: uuid.UUID,
+        group_id: uuid.UUID,
+        response: Response,
+        db: Session = Depends(get_db)
+):
+    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Преподаватель не найден"
+        )
+
+    group = db.query(models.Group).filter(models.Group.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Группа не найдена"
+        )
+
+    existing_group = db.query(models.TeacherGroup).filter(
+        models.TeacherGroup.teacher_id == teacher_id,
+        models.TeacherGroup.group_id == group_id
+    ).first()
+
+    if not existing_group:
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return "Преподаватель не связан с этой группой"
+
+    db.delete(existing_group)
+    db.commit()
+
+    return "Преподаватель успешно удалён из группы"
+
+
 @router.post("/lessons/{teacher_id}/{lesson_id}", response_model=schemas.LessonFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_teacher_lesson(
@@ -220,3 +292,39 @@ async def create_teacher_lesson(
     db.refresh(lesson)
 
     return lesson
+
+
+@router.delete("/lessons/{teacher_id}/{lesson_id}")
+async def delete_teacher_lesson(
+        teacher_id: uuid.UUID,
+        lesson_id: uuid.UUID,
+        response: Response,
+        db: Session = Depends(get_db)
+):
+    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Преподаватель не найден"
+        )
+
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Занятие не найдено"
+        )
+
+    existing_lesson = db.query(models.TeacherLesson).filter(
+        models.TeacherLesson.teacher_id == teacher_id,
+        models.TeacherLesson.lesson_id == lesson_id
+    ).first()
+
+    if not existing_lesson:
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return "Преподаватель не связан с этим занятием"
+
+    db.delete(existing_lesson)
+    db.commit()
+
+    return "Преподаватель успешно удалён из занятия"

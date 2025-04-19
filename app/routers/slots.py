@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import List
+
 from app import schemas, models
 from app.database import get_db
 
@@ -11,8 +10,7 @@ import uuid
 router = APIRouter(
     prefix="/slots",
     tags=["slots"],
-    responses={404: {"description": "Слот не найден"}}
-    # dependencies=[Depends(get_current_active_user)]
+    responses={404: {"description": "Слот не найден"}, 204: {"description": "Слот уже удалён"}}
 )
 
 
@@ -31,7 +29,13 @@ async def create_slot(
     if slot_data.day_of_week < 0 or slot_data.day_of_week > 6:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"День недели должен принимать значения от 0 до 6"
+            detail="День недели должен принимать значения от 0 до 6"
+        )
+
+    if slot_data.start_time >= slot_data.end_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Левая граница слота должна быть раньше правой"
         )
 
     slot = models.Slot(
@@ -80,13 +84,11 @@ async def get_slot_by_id(slot_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.delete("/{slot_id}")
-async def delete_slot_by_id(slot_id: uuid.UUID, db: Session = Depends(get_db)):
+async def delete_slot_by_id(slot_id: uuid.UUID, response: Response, db: Session = Depends(get_db)):
     slot = db.query(models.Slot).filter(models.Slot.id == slot_id).first()
     if not slot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Слот не найден"
-        )
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return "Слот уже удалён"
 
     db.delete(slot)
     db.commit()

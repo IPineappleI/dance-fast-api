@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -11,7 +11,7 @@ from app.routers.users import patch_user
 router = APIRouter(
     prefix="/students",
     tags=["students"],
-    responses={404: {"description": "Ученик не найден"}}
+    responses={404: {"description": "Ученик не найден"}, 204: {"description": "Связь уже удалена"}}
 )
 
 
@@ -155,3 +155,39 @@ async def create_student_group(
     db.refresh(student)
 
     return student
+
+
+@router.delete("/groups/{student_id}/{group_id}")
+async def delete_student_group(
+        student_id: uuid.UUID,
+        group_id: uuid.UUID,
+        response: Response,
+        db: Session = Depends(get_db)
+):
+    student = db.query(models.Student).options().filter(models.Student.id == student_id).first()
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ученик не найден"
+        )
+
+    group = db.query(models.Group).filter(models.Group.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Группа не найдена"
+        )
+
+    existing_group = db.query(models.StudentGroup).filter(
+        models.StudentGroup.student_id == student_id,
+        models.StudentGroup.group_id == group_id
+    ).first()
+
+    if not existing_group:
+        response.status_code=status.HTTP_204_NO_CONTENT
+        return "Ученик не связан с этой группой"
+
+    db.delete(existing_group)
+    db.commit()
+
+    return "Ученик успешно удалён из группы"
