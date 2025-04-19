@@ -1,7 +1,7 @@
 import uuid
 from pydantic import BaseModel
 
-from app.schemas.user import UserBase, UserCreate
+from app.schemas.user import UserBase, UserCreate, UserUpdate
 from app.schemas.level import LevelInfo
 from typing import List, Optional
 from app.schemas.association import MemberGroupBase
@@ -19,40 +19,21 @@ class StudentBase(BaseModel):
 
 class StudentInfo(StudentBase):
     id: uuid.UUID
-    terminated: bool
+    user: UserBase
+    level: LevelInfo
 
     class Config:
         from_attributes = True
 
 
-class StudentUpdate(BaseModel):
-    user_id: Optional[uuid.UUID] = None
+class StudentUpdate(UserUpdate):
     level_id: Optional[uuid.UUID] = None
-    terminated: Optional[bool] = None
-
-    class Config:
-        from_attributes = True
-
-
-class StudentGroupInfo(StudentInfo):
-    user: UserBase
-    level: LevelInfo
-
-    class Config:
-        from_attributes = True
-
-
-class StudentLessonInfo(StudentInfo):
-    user: UserBase
-    level: LevelInfo
 
     class Config:
         from_attributes = True
 
 
 class StudentFullInfo(StudentInfo):
-    user: UserBase
-    level: LevelInfo
     groups: List[MemberGroupBase]
     subscriptions: List[SubscriptionFullInfo]
 
@@ -62,13 +43,6 @@ class StudentFullInfo(StudentInfo):
 
 class StudentCreate(UserCreate):
     level_id: uuid.UUID
-
-    class Config:
-        from_attributes = True
-
-
-class StudentResponse(UserBase):
-    level_name: str
 
     class Config:
         from_attributes = True

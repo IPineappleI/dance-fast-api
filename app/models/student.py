@@ -11,7 +11,6 @@ class Student(BaseModel):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     level_id = Column(UUID(as_uuid=True), ForeignKey("levels.id"), nullable=False)
-    terminated = Column(Boolean, default=False, nullable=True)
 
     user = relationship("User", back_populates="student")
     level = relationship("Level", back_populates="students")

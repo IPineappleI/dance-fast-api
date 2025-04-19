@@ -6,7 +6,7 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-
+from app.routers.users import patch_user
 
 router = APIRouter(
     prefix="/teachers",
@@ -82,16 +82,7 @@ async def patch_teacher(teacher_id: uuid.UUID, teacher_data: schemas.TeacherUpda
             detail="Преподаватель не найден"
         )
 
-    if teacher_data.user_id:
-        user = db.query(models.User).filter(models.User.id == teacher_data.user_id).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Пользователь не найден",
-            )
-
-    for field, value in teacher_data.model_dump(exclude_unset=True).items():
-        setattr(teacher, field, value)
+    await patch_user(teacher.user_id, teacher_data, db)
 
     db.commit()
     db.refresh(teacher)

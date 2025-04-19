@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, field_validator
 from typing import Optional
 import uuid
 
@@ -12,20 +12,7 @@ class UserBase(BaseModel):
     middle_name: Optional[str] = None
     description: Optional[str] = None
     phone_number: str
-
-    class Config:
-        from_attributes = True
-
-
-class UserInfo(BaseModel):
-    id: uuid.UUID
-    email: EmailStr
-    first_name: str
-    last_name: str
-    middle_name: Optional[str] = None
-    description: Optional[str] = None
-    phone_number: str
-    role: str
+    terminated: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -38,6 +25,7 @@ class UserUpdate(BaseModel):
     middle_name: Optional[str] = None
     description: Optional[str] = None
     phone_number: Optional[str] = None
+    terminated: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -53,7 +41,7 @@ class UserCreate(BaseModel):
     phone_number: str
     password: str
 
-    @validator('password')
+    @field_validator('password')
     def password_strength(cls, v):
         """Проверяет сложность пароля."""
         if len(v) < 8:

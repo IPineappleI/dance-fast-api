@@ -14,7 +14,7 @@ class User(BaseModel):
     last_name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     phone_number = Column(String, unique=True, nullable=False)
-    is_active = Column(Boolean, default=True)
+    terminated = Column(Boolean, default=False, nullable=False)
 
     # Связи
     student = relationship("Student", back_populates="user", uselist=False)

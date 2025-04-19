@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,7 +6,7 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
+from app.routers.users import patch_user
 
 router = APIRouter(
     prefix="/students",
@@ -91,14 +90,6 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
             detail="Ученик не найден"
         )
 
-    if student_data.user_id:
-        user = db.query(models.User).filter(models.User.id == student_data.user_id).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Пользователь не найден",
-            )
-
     if student_data.level_id:
         level = db.query(models.Level).filter(models.Level.id == student_data.level_id).first()
         if not level:
@@ -106,9 +97,10 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Уровень не найден",
             )
+        setattr(student, "level_id", student_data.level_id)
+        student_data.level_id = None
 
-    for field, value in student_data.model_dump(exclude_unset=True).items():
-        setattr(student, field, value)
+    await patch_user(student.user_id, student_data, db)
 
     db.commit()
     db.refresh(student)

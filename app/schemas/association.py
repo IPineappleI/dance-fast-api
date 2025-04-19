@@ -2,14 +2,14 @@ from pydantic import BaseModel
 
 
 class GroupStudentBase(BaseModel):
-    student: "StudentGroupInfo"
+    student: "StudentInfo"
 
     class Config:
         from_attributes = True
 
 
 class GroupTeacherBase(BaseModel):
-    teacher: "TeacherGroupInfo"
+    teacher: "TeacherInfo"
 
     class Config:
         from_attributes = True
@@ -30,14 +30,14 @@ class TeacherLessonTypeBase(BaseModel):
 
 
 class LessonTeacherBase(BaseModel):
-    teacher: "TeacherLessonInfo"
+    teacher: "TeacherInfo"
 
     class Config:
         from_attributes = True
 
 
 class LessonStudentBase(BaseModel):
-    student: "StudentLessonInfo"
+    student: "StudentInfo"
 
     class Config:
         from_attributes = True
@@ -50,8 +50,8 @@ class SubscriptionLessonTypeBase(BaseModel):
         from_attributes = True
 
 
-from app.schemas.student import StudentGroupInfo, StudentLessonInfo
-from app.schemas.teacher import TeacherGroupInfo, TeacherLessonInfo
+from app.schemas.student import StudentInfo
+from app.schemas.teacher import TeacherInfo
 from app.schemas.group import GroupInfo
 from app.schemas.lesson_type import LessonTypeInfo
 

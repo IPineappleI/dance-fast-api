@@ -1,7 +1,6 @@
 import uuid
-from typing import Optional
 from pydantic import BaseModel
-from app.schemas.user import UserBase
+from app.schemas.user import UserBase, UserUpdate
 
 
 class AdminBase(BaseModel):
@@ -14,20 +13,13 @@ class AdminBase(BaseModel):
 
 class AdminInfo(AdminBase):
     id: uuid.UUID
-
-    class Config:
-        from_attributes = True
-
-
-class AdminUpdate(BaseModel):
-    user_id: Optional[uuid.UUID] = None
-
-    class Config:
-        from_attributes = True
-
-
-class AdminFullInfo(AdminInfo):
     user: UserBase
 
     class Config:
         from_attributes = True
+
+
+class AdminUpdate(UserUpdate):
+    class Config:
+        from_attributes = True
+
