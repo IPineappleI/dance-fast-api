@@ -11,7 +11,7 @@ class EventBase(BaseModel):
     name: str
     description: Optional[str] = None
     start_time: datetime
-    photo_url: str
+    photo_url: Optional[str] = None
 
     class Config:
         from_attributes = True
