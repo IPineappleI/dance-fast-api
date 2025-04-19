@@ -13,7 +13,7 @@ class SubscriptionTemplate(BaseModel):
     expiration_date = Column(DateTime(timezone=True), nullable=True)
     expiration_day_count = Column(Integer, nullable=True)
     price = Column(Numeric(8, 2), nullable=False)
-    active = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
 
     # Связи
     subscriptions = relationship("Subscription", back_populates="subscription_template")

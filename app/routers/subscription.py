@@ -26,15 +26,14 @@ async def create_subscription(
     if not subscription_template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Шаблон подписки с идентификатором {subscription_data.subscription_template_id} не найден",
+            detail="Шаблон подписки не найден",
         )
     if not subscription_template.active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Шаблон подписки не активен"
         )
-    if subscription_template.expiration_date <= datetime.now(timezone.utc):
-        print(subscription_template.expiration_date)
+    if datetime.now(timezone.utc) >= subscription_template.expiration_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Шаблон подписки просрочен"

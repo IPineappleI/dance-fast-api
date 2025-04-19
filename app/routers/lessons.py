@@ -21,21 +21,21 @@ async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(g
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Стиля танца с идентификатором {lesson_data.lesson_type_id} не существует",
+            detail=f"Стиль танца не найден",
         )
 
     classroom = db.query(models.Classroom).filter(models.Classroom.id == lesson_data.classroom_id).first()
     if not classroom:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Зала с идентификатором {lesson_data.classroom_id} не существует",
+            detail=f"Зал не найден",
         )
 
     group = db.query(models.Group).filter(models.Group.id == lesson_data.group_id).first()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Группы с идентификатором {lesson_data.group_id} не существует",
+            detail=f"Группа не найдена",
         )
 
     lesson = models.Lesson(

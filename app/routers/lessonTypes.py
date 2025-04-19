@@ -12,7 +12,6 @@ router = APIRouter(
     prefix="/lessonTypes",
     tags=["lesson types"],
     responses={404: {"description": "Тип занятия не найден"}}
-    # dependencies=[Depends(get_current_active_user)]
 )
 
 

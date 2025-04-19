@@ -90,7 +90,7 @@ async def get_current_admin(
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """Проверяет, что текущий пользователь активен."""
-    if not current_user.is_active:
+    if current_user.terminated:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Неактивный аккаунт",

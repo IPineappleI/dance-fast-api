@@ -22,8 +22,8 @@ async def create_group(
     level = db.query(models.Level).filter(models.Level.id == group_data.level_id).first()
     if not level:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Уровня подготовки с идентификатором {group_data.level_id} не существует",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Уровень подготовки не найден",
         )
 
     group = models.Group(

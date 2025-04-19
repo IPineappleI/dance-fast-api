@@ -24,14 +24,14 @@ async def create_student(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Пользователя с идентификатором {student_data.user_id} не существует",
+            detail=f"Пользователь не найден",
         )
 
     level = db.query(models.Level).filter(models.Level.id == student_data.level_id).first()
     if not level:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Уровня подготовки с идентификатором {student_data.level_id} не существует",
+            detail=f"Уровень подготовки не найден",
         )
 
     student = models.Student(

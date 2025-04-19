@@ -26,7 +26,6 @@ class SubscriptionInfo(SubscriptionBase):
 
 
 class SubscriptionUpdate(BaseModel):
-    student_id: Optional[uuid.UUID] = None
     subscription_template_id: Optional[uuid.UUID] = None
     expiration_date: Optional[datetime] = None
     payment_id: Optional[uuid.UUID] = None

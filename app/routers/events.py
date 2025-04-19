@@ -23,8 +23,8 @@ async def create_event(
     event_type = db.query(models.EventType).filter(models.EventType.id == event_data.event_type_id).first()
     if not event_type:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Тип мероприятия с идентификатором {event_data.event_type_id} не найден",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Тип мероприятия не найден",
         )
 
     if datetime.now(timezone.utc) >= event_data.start_time:

@@ -28,8 +28,8 @@ async def create_payment(
     payment_type_id = db.query(models.PaymentType).filter(models.PaymentType.id == payment_data.payment_type_id).first()
     if not payment_type_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Тип платежа с идентификатором {payment_data.payment_type_id} не найден",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Тип платежа не найден",
         )
 
     payment = models.Payment(

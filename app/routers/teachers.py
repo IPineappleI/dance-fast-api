@@ -23,8 +23,8 @@ async def create_teacher(
     user = db.query(models.User).filter(models.User.id == teacher_data.user_id).first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Пользователя с идентификатором {teacher_data.user_id} не существует",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Пользователь не найден",
         )
 
     teacher = models.Teacher(

@@ -128,5 +128,5 @@ async def read_users_me(current_user: User = Depends(get_current_active_user), d
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Пользователя с введенными учетными данными не существует"
+        detail="Пользователь не найден"
     )

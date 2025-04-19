@@ -23,7 +23,7 @@ async def create_slot(
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Преподаватель с идентификатором {slot_data.teacher_id} не найден"
+            detail=f"Преподаватель не найден"
         )
 
     if slot_data.day_of_week < 0 or slot_data.day_of_week > 6:
@@ -64,7 +64,7 @@ async def get_all_slots_by_teacher_id(teacher_id: uuid.UUID, db: Session = Depen
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Преподаватель с идентификатором {teacher_id} не найден"
+            detail=f"Преподаватель не найден"
         )
 
     slots = db.query(models.Slot).filter(models.Slot.teacher_id == teacher_id).all()
