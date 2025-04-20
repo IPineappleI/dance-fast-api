@@ -14,7 +14,7 @@ class Lesson(BaseModel):
     start_time = Column(DateTime(timezone=True), nullable=False)
     finish_time = Column(DateTime(timezone=True), nullable=False)
     classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=False)
-    group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False)
+    group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=True)
     is_confirmed = Column(Boolean, nullable=False)
     are_neighbours_allowed = Column(Boolean, nullable=False)
     terminated = Column(Boolean, nullable=False, default=False)
@@ -34,3 +34,10 @@ class Lesson(BaseModel):
         overlaps="subscriptions",
         back_populates="lessons"
     )
+    subscription_templates = relationship(
+        "SubscriptionTemplate",
+        primaryjoin="Lesson.lesson_type_id == SubscriptionLessonType.lesson_type_id",
+        secondary="subscription_lesson_types",
+        secondaryjoin="SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id",
+        viewonly=True,
+        back_populates="lessons")

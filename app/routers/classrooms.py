@@ -6,7 +6,6 @@ from app.database import get_db
 
 import uuid
 
-
 router = APIRouter(
     prefix="/classrooms",
     tags=["classrooms"],
@@ -49,7 +48,9 @@ async def get_classroom_by_id(classroom_id: uuid.UUID, db: Session = Depends(get
 
 
 @router.patch("/{classroom_id}", response_model=schemas.ClassroomInfo, status_code=status.HTTP_200_OK)
-async def patch_classroom(classroom_id: uuid.UUID, classroom_data: schemas.ClassroomUpdate, db: Session = Depends(get_db)):
+async def patch_classroom(classroom_id: uuid.UUID,
+                          classroom_data: schemas.ClassroomUpdate,
+                          db: Session = Depends(get_db)):
     classroom = db.query(models.Classroom).filter(models.Classroom.id == classroom_id).first()
     if not classroom:
         raise HTTPException(

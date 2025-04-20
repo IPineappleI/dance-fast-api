@@ -366,14 +366,6 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.add(group_beginner_tango)
     db.commit()
 
-    group_advanced_tango = models.Group(
-        name="Танго. Индивидуальные занятия в паре. Продвинутый уровень",
-        level_id=level_advanced.id,
-        max_capacity=1
-    )
-    db.add(group_advanced_tango)
-    db.commit()
-
     group_beginner_hiphop = models.Group(
         name="Хип-хоп для начинающих",
         description="Для тех, кто хочет научиться танцевать в стиле хип-хоп",
@@ -381,14 +373,6 @@ async def create_test_data(db: Session = Depends(get_db)):
         max_capacity=10
     )
     db.add(group_beginner_hiphop)
-    db.commit()
-
-    group_advanced_hiphop = models.Group(
-        name="Хип-хоп. Индивидуальные занятия. Продвинутый уровень",
-        level_id=level_advanced.id,
-        max_capacity=1
-    )
-    db.add(group_advanced_hiphop)
     db.commit()
 
     student_group = models.StudentGroup(
@@ -468,27 +452,6 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.add(student_group)
     db.commit()
 
-    student_group = models.StudentGroup(
-        student_id=student_advanced1.id,
-        group_id=group_advanced_tango.id
-    )
-    db.add(student_group)
-    db.commit()
-
-    student_group = models.StudentGroup(
-        student_id=student_advanced2.id,
-        group_id=group_advanced_tango.id
-    )
-    db.add(student_group)
-    db.commit()
-
-    student_group = models.StudentGroup(
-        student_id=student_advanced3.id,
-        group_id=group_advanced_hiphop.id
-    )
-    db.add(student_group)
-    db.commit()
-
     teacher_group = models.TeacherGroup(
         teacher_id=teacher1.id,
         group_id=group_beginner_tango.id
@@ -499,20 +462,6 @@ async def create_test_data(db: Session = Depends(get_db)):
     teacher_group = models.TeacherGroup(
         teacher_id=teacher2.id,
         group_id=group_beginner_tango.id
-    )
-    db.add(teacher_group)
-    db.commit()
-
-    teacher_group = models.TeacherGroup(
-        teacher_id=teacher1.id,
-        group_id=group_advanced_tango.id
-    )
-    db.add(teacher_group)
-    db.commit()
-
-    teacher_group = models.TeacherGroup(
-        teacher_id=teacher2.id,
-        group_id=group_advanced_hiphop.id
     )
     db.add(teacher_group)
     db.commit()
@@ -1211,7 +1160,6 @@ async def create_test_data(db: Session = Depends(get_db)):
         start_time=datetime.now(timezone.utc) + timedelta(days=1),
         finish_time=datetime.now(timezone.utc) + timedelta(days=1) + timedelta(minutes=60),
         classroom_id=classroom3.id,
-        group_id=group_advanced_tango.id,
         are_neighbours_allowed=False,
         is_confirmed=True
     )
@@ -1238,7 +1186,6 @@ async def create_test_data(db: Session = Depends(get_db)):
         start_time=datetime.now(timezone.utc) + timedelta(days=9) + timedelta(minutes=15),
         finish_time=datetime.now(timezone.utc) + timedelta(days=9) + timedelta(minutes=75),
         classroom_id=classroom4.id,
-        group_id=group_advanced_hiphop.id,
         are_neighbours_allowed=True,
         is_confirmed=True
     )

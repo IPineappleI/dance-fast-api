@@ -50,7 +50,9 @@ async def get_dance_style_by_id(dance_style_id: uuid.UUID, db: Session = Depends
 
 
 @router.patch("/{dance_style_id}", response_model=schemas.DanceStyleInfo, status_code=status.HTTP_200_OK)
-async def patch_dance_style(dance_style_id: uuid.UUID, dance_style_data: schemas.DanceStyleUpdate, db: Session = Depends(get_db)):
+async def patch_dance_style(dance_style_id: uuid.UUID,
+                            dance_style_data: schemas.DanceStyleUpdate,
+                            db: Session = Depends(get_db)):
     dance_style = db.query(models.DanceStyle).filter(models.DanceStyle.id == dance_style_id).first()
     if not dance_style:
         raise HTTPException(

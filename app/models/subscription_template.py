@@ -16,3 +16,10 @@ class SubscriptionTemplate(BaseModel):
 
     subscriptions = relationship("Subscription", back_populates="subscription_template")
     lesson_types = relationship("SubscriptionLessonType", back_populates="subscription_template")
+    lessons = relationship(
+        "Lesson",
+        primaryjoin="SubscriptionTemplate.id == SubscriptionLessonType.subscription_template_id",
+        secondary="subscription_lesson_types",
+        secondaryjoin="SubscriptionLessonType.lesson_type_id == Lesson.lesson_type_id",
+        viewonly=True,
+        back_populates="subscription_templates")

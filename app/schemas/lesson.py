@@ -17,7 +17,7 @@ class LessonBase(BaseModel):
     start_time: datetime
     finish_time: datetime
     classroom_id: uuid.UUID
-    group_id: uuid.UUID
+    group_id: Optional[uuid.UUID] = None
     are_neighbours_allowed: bool
 
     class Config:
@@ -52,8 +52,8 @@ class LessonUpdate(BaseModel):
 class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeInfo
     classroom: ClassroomInfo
-    group: GroupInfo
-    #subscription_templates: List[SubscriptionTemplateInfo]
+    subscription_templates: List[SubscriptionTemplateInfo]
+    group: Optional[GroupInfo] = None
     actual_students: List[StudentInfo]
     actual_teachers: List[LessonTeacherBase]
 
@@ -69,8 +69,8 @@ class LessonSearch(BaseModel):
     is_group: Optional[bool] = None
 
     lesson_type_ids: Optional[List[uuid.UUID]] = None
-    subscription_template_ids: Optional[List[uuid.UUID]] = None
     classroom_ids: Optional[List[uuid.UUID]] = None
+    subscription_template_ids: Optional[List[uuid.UUID]] = None
     group_ids: Optional[List[uuid.UUID]] = None
     student_ids: Optional[List[uuid.UUID]] = None
     teacher_ids: Optional[List[uuid.UUID]] = None

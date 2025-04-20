@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from typing import List
 
 from app.database import get_db
@@ -63,15 +63,75 @@ async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(g
     return lesson
 
 
-@router.get("/", response_model=List[schemas.LessonInfo])
-async def get_all_lessons(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    lessons = db.query(models.Lesson).offset(skip).limit(limit).all()
+def apply_filters_to_lessons(lessons: Query, filters):
+    if filters.date_from:
+        lessons = lessons.filter(models.Lesson.start_time >= filters.date_from)
+    if filters.date_to:
+        lessons = lessons.filter(models.Lesson.finish_time <= filters.date_to)
+
+    if type(filters.is_confirmed) is bool:
+        lessons = lessons.filter(models.Lesson.is_confirmed == filters.is_confirmed)
+    if type(filters.are_neighbours_allowed) is bool:
+        lessons = lessons.filter(models.Lesson.are_neighbours_allowed == filters.are_neighbours_allowed)
+    if type(filters.is_group) is bool:
+        lessons = lessons.filter((models.Lesson.group_id != None) == filters.is_group)
+
+    if filters.lesson_type_ids:
+        lessons = lessons.filter(models.Lesson.lesson_type_id.in_(filters.lesson_type_ids))
+    if filters.classroom_ids:
+        lessons = lessons.filter(models.Lesson.classroom_id.in_(filters.classroom_ids))
+    if filters.group_ids:
+        lessons = lessons.filter(models.Lesson.group_id.in_(filters.group_ids))
+
+    if filters.subscription_template_ids:
+        lessons = lessons.join(
+            models.SubscriptionLessonType,
+            models.Lesson.lesson_type_id == models.SubscriptionLessonType.lesson_type_id
+        ).filter(
+            models.SubscriptionLessonType.subscription_template_id.in_(filters.subscription_template_ids)
+        )
+
+    if filters.student_ids:
+        lessons = lessons.join(
+            models.LessonSubscription,
+            models.Lesson.id == models.LessonSubscription.lesson_id
+        ).join(
+            models.Subscription,
+            models.LessonSubscription.subscription_id == models.Subscription.id
+        ).filter(
+            models.Subscription.student_id.in_(filters.student_ids)
+        )
+
+    if filters.teacher_ids:
+        lessons = lessons.join(
+            models.TeacherLesson,
+            models.Lesson.id == models.TeacherLesson.lesson_id
+        ).filter(
+            models.TeacherLesson.teacher_id.in_(filters.teacher_ids)
+        )
+
     return lessons
 
 
-@router.get("/full-info", response_model=List[schemas.LessonFullInfo])
-async def get_all_lessons_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    lessons = db.query(models.Lesson).offset(skip).limit(limit).all()
+@router.post("/search", response_model=List[schemas.LessonInfo])
+async def search_lessons(filters: schemas.LessonSearch,
+                         skip: int = 0, limit: int = 100,
+                         db: Session = Depends(get_db)):
+    lessons = db.query(models.Lesson)
+    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = lessons.offset(skip).limit(limit).all()
+
+    return lessons
+
+
+@router.post("/search/full-info", response_model=List[schemas.LessonFullInfo])
+async def search_lessons_full_info(filters: schemas.LessonSearch,
+                                   skip: int = 0, limit: int = 100,
+                                   db: Session = Depends(get_db)):
+    lessons = db.query(models.Lesson)
+    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = lessons.offset(skip).limit(limit).all()
+
     return lessons
 
 
@@ -99,7 +159,8 @@ async def get_lesson_full_info_by_id(lesson_id: uuid.UUID, db: Session = Depends
 
 @router.patch("/{lesson_id}", response_model=schemas.LessonInfo, status_code=status.HTTP_200_OK)
 async def patch_lesson(
-        lesson_id: uuid.UUID, lesson_data: schemas.LessonUpdate,
+        lesson_id: uuid.UUID,
+        lesson_data: schemas.LessonUpdate,
         db: Session = Depends(get_db)):
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lesson:
