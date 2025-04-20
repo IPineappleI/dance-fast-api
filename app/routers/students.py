@@ -102,7 +102,7 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
         student_data.level_id = None
 
     if student_data.terminated:
-        student_groups = db.query(models.StudentGroup).filter(models.StudentGroup.student_id == student_id).delete()
+        db.query(models.StudentGroup).filter(models.StudentGroup.student_id == student_id).delete()
 
     await patch_user(student.user_id, student_data, db)
 
