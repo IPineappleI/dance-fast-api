@@ -13,7 +13,6 @@ class Event(BaseModel):
     description = Column(String, nullable=True)
     start_time = Column(DateTime(timezone=True), nullable=False)
     photo_url = Column(String, nullable=True)
-    terminated = Column(Boolean, default=False, nullable=True)
+    terminated = Column(Boolean, nullable=False, default=False)
 
-    # Связи
-    event_type = relationship("EventType", back_populates="events") 
+    event_type = relationship("EventType", back_populates="events")

@@ -7,6 +7,7 @@ from typing import List
 from app.database import get_db
 from app import models, schemas
 
+
 router = APIRouter(
     prefix="/groups",
     tags=["groups"],
@@ -19,11 +20,17 @@ async def create_group(
         group_data: schemas.GroupBase,
         db: Session = Depends(get_db)
 ):
+    if group_data.max_capacity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Количество мест в группе должно быть положительным"
+        )
+
     level = db.query(models.Level).filter(models.Level.id == group_data.level_id).first()
     if not level:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Уровень подготовки не найден",
+            detail="Уровень подготовки не найден"
         )
 
     group = models.Group(
@@ -71,20 +78,25 @@ async def get_group_full_info_by_id(group_id: uuid.UUID, db: Session = Depends(g
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Группа не найдена"
         )
-
     return group
 
 
 @router.patch("/{group_id}", response_model=schemas.GroupInfo, status_code=status.HTTP_200_OK)
 async def patch_group(
-        group_id: uuid.UUID, group_data: schemas.GroupUpdate,
+        group_id: uuid.UUID,
+        group_data: schemas.GroupUpdate,
         db: Session = Depends(get_db)):
     group = db.query(models.Group).filter(models.Group.id == group_id).first()
-
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Группа не найдена"
+        )
+
+    if group_data.max_capacity and group_data.max_capacity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Количество мест в группе должно быть положительным"
         )
 
     if group_data.level_id:
@@ -92,7 +104,7 @@ async def patch_group(
         if not level:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Уровень не найден",
+                detail="Уровень подготовки не найден"
             )
 
     for field, value in group_data.model_dump(exclude_unset=True).items():

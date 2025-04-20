@@ -7,8 +7,8 @@ from app.models.base import BaseModel
 class Classroom(BaseModel):
     __tablename__ = "classrooms"
 
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     description = Column(String, nullable=True)
-    terminated = Column(Boolean, default=False, nullable=True)
-    # Связи
+    terminated = Column(Boolean, nullable=False, default=False)
+
     lessons = relationship("Lesson", back_populates="classroom")

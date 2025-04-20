@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,12 +6,12 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
+
 
 router = APIRouter(
     prefix="/levels",
     tags=["levels"],
-    responses={404: {"description": "Уровень не найден"}}
+    responses={404: {"description": "Уровень подготовки не найден"}}
 )
 
 
@@ -45,7 +44,7 @@ async def get_level_by_id(level_id: uuid.UUID, db: Session = Depends(get_db)):
     if level is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Уровень не найден"
+            detail="Уровень подготовки не найден"
         )
     return level
 
@@ -56,7 +55,7 @@ async def patch_level(level_id: uuid.UUID, level_data: schemas.LevelUpdate, db: 
     if not level:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Уровень не найден"
+            detail="Уровень подготовки не найден"
         )
 
     for field, value in level_data.model_dump(exclude_unset=True).items():

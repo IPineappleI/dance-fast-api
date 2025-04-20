@@ -6,7 +6,6 @@ from app.schemas.association import MemberGroupBase, TeacherLessonTypeBase
 
 
 class TeacherBase(BaseModel):
-    """Базовая схема преподавателя."""
     user_id: uuid.UUID
 
     class Config:

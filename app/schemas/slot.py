@@ -6,7 +6,6 @@ from datetime import time
 
 
 class SlotBase(BaseModel):
-    """Базовая схема слота."""
     teacher_id: uuid.UUID
     day_of_week: int
     start_time: time

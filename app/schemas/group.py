@@ -6,7 +6,6 @@ from app.schemas.association import GroupTeacherBase, GroupStudentBase
 
 
 class GroupBase(BaseModel):
-    """Базовая схема группы."""
     name: str
     description: Optional[str] = None
     level_id: uuid.UUID

@@ -8,10 +8,8 @@ from app.schemas.payment import PaymentInfoWithType
 
 
 class SubscriptionBase(BaseModel):
-    """Базовая схема шаблона подписки."""
     student_id: uuid.UUID
-    subscription_template_id: Optional[uuid.UUID] = None
-    expiration_date: Optional[datetime] = None
+    subscription_template_id: uuid.UUID
     payment_id: Optional[uuid.UUID] = None
 
     class Config:
@@ -20,6 +18,7 @@ class SubscriptionBase(BaseModel):
 
 class SubscriptionInfo(SubscriptionBase):
     id: uuid.UUID
+    expiration_date: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -36,7 +35,7 @@ class SubscriptionUpdate(BaseModel):
 
 class SubscriptionFullInfo(SubscriptionInfo):
     subscription_template: "SubscriptionTemplateFullInfo"
-    payment: PaymentInfoWithType
+    payment: Optional[PaymentInfoWithType] = None
 
     class Config:
         from_attributes = True

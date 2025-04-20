@@ -9,7 +9,6 @@ from app.schemas.subscription import SubscriptionFullInfo
 
 
 class StudentBase(BaseModel):
-    """Базовая схема студента."""
     user_id: uuid.UUID
     level_id: uuid.UUID
 

@@ -6,7 +6,6 @@ from app.schemas.eventType import EventTypeInfo
 
 
 class EventBase(BaseModel):
-    """Базовая схема мероприятия."""
     event_type_id: uuid.UUID
     name: str
     description: Optional[str] = None

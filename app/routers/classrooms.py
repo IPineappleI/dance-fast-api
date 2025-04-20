@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,11 +6,11 @@ from app.database import get_db
 
 import uuid
 
+
 router = APIRouter(
     prefix="/classrooms",
     tags=["classrooms"],
     responses={404: {"description": "Зал не найден"}}
-    # dependencies=[Depends(get_current_active_user)]
 )
 
 

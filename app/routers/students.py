@@ -8,6 +8,7 @@ from app.database import get_db
 from app import models, schemas
 from app.routers.users import patch_user
 
+
 router = APIRouter(
     prefix="/students",
     tags=["students"],
@@ -24,14 +25,14 @@ async def create_student(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Пользователь не найден",
+            detail="Пользователь не найден"
         )
 
     level = db.query(models.Level).filter(models.Level.id == student_data.level_id).first()
     if not level:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Уровень подготовки не найден",
+            detail="Уровень подготовки не найден"
         )
 
     student = models.Student(
@@ -95,7 +96,7 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
         if not level:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Уровень не найден",
+                detail="Уровень подготовки не найден",
             )
         setattr(student, "level_id", student_data.level_id)
         student_data.level_id = None
@@ -128,6 +129,7 @@ async def create_student_group(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Группа не найдена"
         )
+
     if len(group.students) >= group.max_capacity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

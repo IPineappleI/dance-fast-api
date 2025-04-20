@@ -21,24 +21,21 @@ async def create_user(
         user_data: schemas.UserCreate,
         db: Session = Depends(get_db)
 ):
-    # Проверяем, существует ли пользователь с таким email
-    db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
-    if db_user:
+    email_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if email_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email уже используется",
-        )
-    # Проверяем, существует ли пользователь с таким phone_number
-    db_user = db.query(models.User).filter(models.User.phone_number == user_data.phone_number).first()
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Номер телефона уже используется",
+            detail="Email уже используется"
         )
 
-    # Создаем пользователя
+    phone_user = db.query(models.User).filter(models.User.phone_number == user_data.phone_number).first()
+    if phone_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Номер телефона уже используется"
+        )
+
     hashed_password = get_password_hash(user_data.password)
-
     user = models.User(
         email=user_data.email,
         hashed_password=hashed_password,
@@ -83,19 +80,19 @@ async def patch_user(user_id: uuid.UUID, user_data: schemas.UserUpdate, db: Sess
         )
 
     if user_data.email:
-        email = db.query(models.User).filter(models.User.email == user_data.email).first()
-        if email:
+        email_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+        if email_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email уже используется",
+                detail="Email уже используется"
             )
 
     if user_data.phone_number:
-        phone = db.query(models.User).filter(models.User.phone_number == user_data.phone_number).first()
-        if phone:
+        phone_user = db.query(models.User).filter(models.User.phone_number == user_data.phone_number).first()
+        if phone_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Номер телефона уже используется",
+                detail="Номер телефона уже используется"
             )
 
     for field, value in user_data.model_dump(exclude_unset=True).items():

@@ -8,6 +8,7 @@ from app.database import get_db
 from app import models, schemas
 from app.routers.users import patch_user
 
+
 router = APIRouter(
     prefix="/teachers",
     tags=["teachers"],
@@ -24,7 +25,7 @@ async def create_teacher(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Пользователь не найден",
+            detail="Пользователь не найден",
         )
 
     teacher = models.Teacher(

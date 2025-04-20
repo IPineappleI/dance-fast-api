@@ -3,15 +3,14 @@ from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models
 from app.database import get_db
-from datetime import datetime, timezone
 
 import uuid
+
 
 router = APIRouter(
     prefix="/events",
     tags=["events"],
     responses={404: {"description": "Мероприятие не найдено"}}
-    # dependencies=[Depends(get_current_active_user)]
 )
 
 
@@ -24,13 +23,7 @@ async def create_event(
     if not event_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Тип мероприятия не найден",
-        )
-
-    if datetime.now(timezone.utc) >= event_data.start_time:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Указано невалидное время начала мероприятия"
+            detail="Тип мероприятия не найден"
         )
 
     event = models.Event(
@@ -81,7 +74,7 @@ async def get_event_with_type_by_id(event_id: uuid.UUID, db: Session = Depends(g
         )
 
     event_type = db.query(models.EventType).filter(models.EventType.id == event.event_type_id).first()
-    if not event:
+    if not event_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Тип мероприятия не найден"
@@ -106,12 +99,6 @@ async def patch_event(event_id: uuid.UUID, event_data: schemas.EventUpdate, db: 
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Тип мероприятия не найден"
             )
-
-    if event_data.start_time and event_data.start_time >= datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Указано невалидное время мероприятия"
-        )
 
     for field, value in event_data.model_dump(exclude_unset=True).items():
         setattr(event, field, value)

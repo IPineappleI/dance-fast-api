@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -7,6 +5,7 @@ from app import schemas, models
 from app.database import get_db
 
 import uuid
+
 
 router = APIRouter(
     prefix="/lessonTypes",

@@ -4,7 +4,6 @@ import uuid
 
 
 class EventTypeBase(BaseModel):
-    """Базовая схема типа мероприятия."""
     name: str
     description: Optional[str] = None
 
@@ -21,7 +20,7 @@ class EventTypeInfo(EventTypeBase):
 
 
 class EventTypeUpdate(BaseModel):
-    name: Optional[str]
+    name: Optional[str] = None
     description: Optional[str] = None
     terminated: Optional[bool] = None
 

@@ -21,21 +21,27 @@ async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(g
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Стиль танца не найден",
+            detail="Стиль танца не найден"
         )
 
     classroom = db.query(models.Classroom).filter(models.Classroom.id == lesson_data.classroom_id).first()
     if not classroom:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Зал не найден",
+            detail="Зал не найден"
         )
 
     group = db.query(models.Group).filter(models.Group.id == lesson_data.group_id).first()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Группа не найдена",
+            detail="Группа не найдена"
+        )
+
+    if lesson_data.start_time >= lesson_data.finish_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Начало занятия должно быть раньше его конца"
         )
 
     lesson = models.Lesson(
@@ -45,7 +51,9 @@ async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(g
         start_time=lesson_data.start_time,
         finish_time=lesson_data.finish_time,
         classroom_id=lesson_data.classroom_id,
-        group_id=lesson_data.group_id
+        group_id=lesson_data.group_id,
+        are_neighbours_allowed=lesson_data.are_neighbours_allowed,
+        is_confirmed=True
     )
 
     db.add(lesson)
@@ -86,7 +94,6 @@ async def get_lesson_full_info_by_id(lesson_id: uuid.UUID, db: Session = Depends
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Занятие не найдено"
         )
-
     return lessons
 
 
@@ -95,11 +102,10 @@ async def patch_lesson(
         lesson_id: uuid.UUID, lesson_data: schemas.LessonUpdate,
         db: Session = Depends(get_db)):
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
-
     if not lesson:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Занятие не найдена"
+            detail="Занятие не найдено"
         )
 
     if lesson_data.lesson_type_id:
@@ -107,7 +113,7 @@ async def patch_lesson(
         if not lesson_type:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Тип занятия не найден",
+                detail="Тип занятия не найден"
             )
 
     if lesson_data.classroom_id:
@@ -115,7 +121,7 @@ async def patch_lesson(
         if not classroom:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Зал не найден",
+                detail="Зал не найден"
             )
 
     if lesson_data.group_id:
@@ -126,14 +132,14 @@ async def patch_lesson(
                 detail="Группа не найдена",
             )
 
-    if lesson_data.start_time >= lesson_data.finish_time:
+    for field, value in lesson_data.model_dump(exclude_unset=True).items():
+        setattr(lesson, field, value)
+
+    if lesson.start_time >= lesson.finish_time:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Начало занятия должно быть раньше его конца"
         )
-
-    for field, value in lesson_data.model_dump(exclude_unset=True).items():
-        setattr(lesson, field, value)
 
     db.commit()
     db.refresh(lesson)

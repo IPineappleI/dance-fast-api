@@ -15,11 +15,10 @@ class Lesson(BaseModel):
     finish_time = Column(DateTime(timezone=True), nullable=False)
     classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=False)
     group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=False)
-    is_confirmed = Column(Boolean, default=False)
-    are_neighbours_allowed = Column(Boolean, default=False)
-    terminated = Column(Boolean, default=False, nullable=True)
-    
-    # Связи
+    is_confirmed = Column(Boolean, nullable=False)
+    are_neighbours_allowed = Column(Boolean, nullable=False)
+    terminated = Column(Boolean, nullable=False, default=False)
+
     lesson_type = relationship("LessonType", back_populates="lessons")
     classroom = relationship("Classroom", back_populates="lessons")
     group = relationship("Group", back_populates="lessons")
@@ -29,7 +28,7 @@ class Lesson(BaseModel):
         "Student",
         primaryjoin="Lesson.id == LessonSubscription.lesson_id",
         secondary="join(LessonSubscription, Subscription, "
-            "LessonSubscription.subscription_id == Subscription.id)",
+                  "LessonSubscription.subscription_id == Subscription.id)",
         secondaryjoin="Subscription.student_id == Student.id",
         viewonly=True,
         overlaps="subscriptions",

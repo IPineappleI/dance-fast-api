@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,11 +6,11 @@ from app.database import get_db
 
 import uuid
 
+
 router = APIRouter(
     prefix="/paymentTypes",
     tags=["payment types"],
     responses={404: {"description": "Тип платежа не найден"}}
-    # dependencies=[Depends(get_current_active_user)]
 )
 
 
@@ -53,9 +51,7 @@ async def get_payment_type_by_id(payment_type_id: uuid.UUID, db: Session = Depen
 async def patch_payment_type(
         payment_type_id: uuid.UUID, payment_type_data: schemas.PaymentTypeUpdate,
         db: Session = Depends(get_db)):
-
     payment_type = db.query(models.PaymentType).filter(models.PaymentType.id == payment_type_id).first()
-
     if not payment_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

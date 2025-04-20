@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
 
+
 class Slot(BaseModel):
     __tablename__ = "slots"
 
@@ -12,5 +13,4 @@ class Slot(BaseModel):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
 
-    # Связи
-    teacher = relationship("Teacher", back_populates="slots") 
+    teacher = relationship("Teacher", back_populates="slots")

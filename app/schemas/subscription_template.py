@@ -7,14 +7,12 @@ from app.schemas.association import SubscriptionLessonTypeBase
 
 
 class SubscriptionTemplateBase(BaseModel):
-    """Базовая схема шаблона подписки."""
     name: str
     description: Optional[str] = None
     lesson_count: int
     expiration_date: Optional[datetime] = None
     expiration_day_count: Optional[int] = None
     price: decimal.Decimal
-    active: bool
 
     class Config:
         from_attributes = True
@@ -34,7 +32,6 @@ class SubscriptionTemplateUpdate(BaseModel):
     expiration_date: Optional[datetime] = None
     expiration_day_count: Optional[int] = None
     price: Optional[decimal.Decimal] = None
-    active: Optional[bool] = None
 
     class Config:
         from_attributes = True

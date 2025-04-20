@@ -7,6 +7,7 @@ from app.database import get_db
 
 import uuid
 
+
 router = APIRouter(
     prefix="/slots",
     tags=["slots"],
@@ -23,7 +24,7 @@ async def create_slot(
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Преподаватель не найден"
+            detail="Преподаватель не найден"
         )
 
     if slot_data.day_of_week < 0 or slot_data.day_of_week > 6:
@@ -64,7 +65,7 @@ async def get_all_slots_by_teacher_id(teacher_id: uuid.UUID, db: Session = Depen
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Преподаватель не найден"
+            detail="Преподаватель не найден"
         )
 
     slots = db.query(models.Slot).filter(models.Slot.teacher_id == teacher_id).all()
@@ -93,7 +94,7 @@ async def delete_slot_by_id(slot_id: uuid.UUID, response: Response, db: Session 
     db.delete(slot)
     db.commit()
 
-    return "Слот успешно удален"
+    return "Слот успешно удалён"
 
 
 @router.patch("/{slot_id}", response_model=schemas.SlotInfo, status_code=status.HTTP_200_OK)
@@ -109,19 +110,25 @@ async def patch_slot(slot_id: uuid.UUID, slot_data: schemas.SlotUpdate, db: Sess
         teacher = db.query(models.Teacher).filter(models.Teacher.id == slot_data.teacher_id).first()
         if not teacher:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Преподаватель не найден",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Преподаватель не найден"
             )
 
     if slot_data.day_of_week:
         if slot_data.day_of_week < 0 or slot_data.day_of_week > 6:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"День недели должен принимать значения от 0 до 6"
+                detail="День недели должен принимать значения от 0 до 6"
             )
 
     for field, value in slot_data.model_dump(exclude_unset=True).items():
         setattr(slot, field, value)
+
+    if slot.start_time >= slot.end_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Левая граница слота должна быть раньше правой"
+        )
 
     db.commit()
     db.refresh(slot)

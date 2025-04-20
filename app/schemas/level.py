@@ -1,12 +1,10 @@
 from typing import Optional
 
 from pydantic import BaseModel
-from datetime import datetime
 import uuid
 
 
 class LevelBase(BaseModel):
-    """Базовая схема уровня."""
     name: str
     description: Optional[str] = None
 

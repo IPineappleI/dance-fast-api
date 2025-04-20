@@ -4,7 +4,6 @@ from typing import Optional
 
 
 class ClassroomBase(BaseModel):
-    """Базовая схема зала."""
     name: str
     description: Optional[str] = None
 

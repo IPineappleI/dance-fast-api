@@ -4,7 +4,6 @@ from app.schemas.user import UserBase, UserUpdate
 
 
 class AdminBase(BaseModel):
-    """Базовая схема администратора."""
     user_id: uuid.UUID
 
     class Config:
@@ -22,4 +21,3 @@ class AdminInfo(AdminBase):
 class AdminUpdate(UserUpdate):
     class Config:
         from_attributes = True
-

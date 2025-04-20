@@ -14,9 +14,8 @@ class User(BaseModel):
     last_name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     phone_number = Column(String, unique=True, nullable=False)
-    terminated = Column(Boolean, default=False, nullable=False)
+    terminated = Column(Boolean, nullable=False, default=False)
 
-    # Связи
     student = relationship("Student", back_populates="user", uselist=False)
     teacher = relationship("Teacher", back_populates="user", uselist=False)
     admin = relationship("Admin", back_populates="user", uselist=False)

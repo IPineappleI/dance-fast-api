@@ -7,10 +7,9 @@ from app.models.base import BaseModel
 class Level(BaseModel):
     __tablename__ = "levels"
 
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     description = Column(String, nullable=True)
-    terminated = Column(Boolean, default=False, nullable=True)
+    terminated = Column(Boolean, nullable=False, default=False)
 
-    # Связи
     students = relationship("Student", back_populates="level")
     groups = relationship("Group", back_populates="level")

@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,8 +6,8 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
 from app.routers.users import patch_user
+
 
 router = APIRouter(
     prefix="/admins",
@@ -26,7 +25,7 @@ async def create_admin(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Пользователь не найден",
+            detail="Пользователь не найден"
         )
 
     admin = models.Admin(

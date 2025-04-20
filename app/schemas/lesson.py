@@ -11,7 +11,6 @@ from datetime import datetime
 
 
 class LessonBase(BaseModel):
-    """Базовая схема группы."""
     name: str
     description: Optional[str] = None
     lesson_type_id: uuid.UUID
@@ -19,6 +18,7 @@ class LessonBase(BaseModel):
     finish_time: datetime
     classroom_id: uuid.UUID
     group_id: uuid.UUID
+    are_neighbours_allowed: bool
 
     class Config:
         from_attributes = True
@@ -27,14 +27,13 @@ class LessonBase(BaseModel):
 class LessonInfo(LessonBase):
     id: uuid.UUID
     is_confirmed: bool
-    are_neighbours_allowed: bool
     terminated: bool
 
     class Config:
         from_attributes = True
 
 
-class LessonUpdate(LessonBase):
+class LessonUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     lesson_type_id: Optional[uuid.UUID] = None

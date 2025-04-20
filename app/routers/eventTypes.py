@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,11 +6,11 @@ from app.database import get_db
 
 import uuid
 
+
 router = APIRouter(
     prefix="/eventTypes",
     tags=["event types"],
     responses={404: {"description": "Тип мероприятия не найден"}}
-    # dependencies=[Depends(get_current_active_user)]
 )
 
 
@@ -60,7 +58,7 @@ async def patch_event_type(
     if not event_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Тип мероприятия не найдено"
+            detail="Тип мероприятия не найден"
         )
 
     for field, value in event_type_data.model_dump(exclude_unset=True).items():

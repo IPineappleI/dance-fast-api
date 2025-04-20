@@ -7,7 +7,6 @@ import uuid
 
 
 class PaymentBase(BaseModel):
-    """Базовая схема платежа."""
     payment_type_id: uuid.UUID
     details: Optional[str] = None
     created_at: datetime
@@ -18,6 +17,7 @@ class PaymentBase(BaseModel):
 
 class PaymentInfo(PaymentBase):
     id: uuid.UUID
+    terminated: bool
 
     class Config:
         from_attributes = True
@@ -26,6 +26,7 @@ class PaymentInfo(PaymentBase):
 class PaymentUpdate(BaseModel):
     payment_type_id: Optional[uuid.UUID] = None
     details: Optional[str] = None
+    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True

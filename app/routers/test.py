@@ -892,7 +892,9 @@ async def create_test_data(db: Session = Depends(get_db)):
         start_time=datetime.now(timezone.utc) - timedelta(days=7),
         finish_time=datetime.now(timezone.utc) - timedelta(days=7) + timedelta(minutes=90),
         classroom_id=classroom1.id,
-        group_id=group_beginner_tango.id
+        group_id=group_beginner_tango.id,
+        are_neighbours_allowed=False,
+        is_confirmed=True
     )
     db.add(lesson1)
     db.commit()
@@ -945,7 +947,9 @@ async def create_test_data(db: Session = Depends(get_db)):
         start_time=datetime.now(timezone.utc),
         finish_time=datetime.now(timezone.utc) + timedelta(minutes=90),
         classroom_id=classroom2.id,
-        group_id=group_beginner_tango.id
+        group_id=group_beginner_tango.id,
+        are_neighbours_allowed=False,
+        is_confirmed=True
     )
     db.add(lesson2)
     db.commit()
@@ -1012,7 +1016,9 @@ async def create_test_data(db: Session = Depends(get_db)):
         start_time=datetime.now(timezone.utc) + timedelta(days=7),
         finish_time=datetime.now(timezone.utc) + timedelta(days=7) + timedelta(minutes=90),
         classroom_id=classroom2.id,
-        group_id=group_beginner_tango.id
+        group_id=group_beginner_tango.id,
+        are_neighbours_allowed=False,
+        is_confirmed=True
     )
     db.add(lesson3)
     db.commit()
@@ -1080,7 +1086,8 @@ async def create_test_data(db: Session = Depends(get_db)):
         finish_time=datetime.now(timezone.utc) + timedelta(days=2) + timedelta(minutes=90),
         classroom_id=classroom4.id,
         group_id=group_beginner_hiphop.id,
-        are_neighbours_allowed=True
+        are_neighbours_allowed=True,
+        is_confirmed=True
     )
     db.add(lesson4)
     db.commit()
@@ -1134,7 +1141,8 @@ async def create_test_data(db: Session = Depends(get_db)):
         finish_time=datetime.now(timezone.utc) + timedelta(days=9) + timedelta(minutes=90),
         classroom_id=classroom4.id,
         group_id=group_beginner_hiphop.id,
-        are_neighbours_allowed=True
+        are_neighbours_allowed=True,
+        is_confirmed=True
     )
     db.add(lesson5)
     db.commit()
@@ -1187,7 +1195,9 @@ async def create_test_data(db: Session = Depends(get_db)):
         start_time=datetime.now(timezone.utc) + timedelta(days=1),
         finish_time=datetime.now(timezone.utc) + timedelta(days=1) + timedelta(minutes=60),
         classroom_id=classroom3.id,
-        group_id=group_advanced_tango.id
+        group_id=group_advanced_tango.id,
+        are_neighbours_allowed=False,
+        is_confirmed=True
     )
     db.add(lesson6)
     db.commit()
@@ -1213,7 +1223,8 @@ async def create_test_data(db: Session = Depends(get_db)):
         finish_time=datetime.now(timezone.utc) + timedelta(days=9) + timedelta(minutes=75),
         classroom_id=classroom4.id,
         group_id=group_advanced_hiphop.id,
-        are_neighbours_allowed=True
+        are_neighbours_allowed=True,
+        is_confirmed=True
     )
     db.add(lesson7)
     db.commit()

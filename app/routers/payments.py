@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,15 +6,11 @@ from app.database import get_db
 
 import uuid
 
-from app.schemas.payment import PaymentInfoWithType
-
-from app.schemas.paymentType import PaymentTypeInfo
 
 router = APIRouter(
     prefix="/payments",
     tags=["payments"],
-    responses={404: {"description": "Платеж не найден"}}
-    # dependencies=[Depends(get_current_active_user)]
+    responses={404: {"description": "Платёж не найден"}}
 )
 
 
@@ -29,7 +23,7 @@ async def create_payment(
     if not payment_type_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Тип платежа не найден",
+            detail="Тип платежа не найден"
         )
 
     payment = models.Payment(
@@ -62,7 +56,7 @@ async def get_payment_by_id(payment_id: uuid.UUID, db: Session = Depends(get_db)
     if payment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Платеж не найден"
+            detail="Платёж не найден"
         )
     return payment
 
@@ -73,7 +67,7 @@ async def get_payment_with_type_by_id(payment_id: uuid.UUID, db: Session = Depen
     if payment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Платеж не найден"
+            detail="Платёж не найден"
         )
 
     payment_type = db.query(models.PaymentType).filter(models.PaymentType.id == payment.payment_type_id).first()
@@ -92,7 +86,7 @@ async def patch_payment(payment_id: uuid.UUID, payment_data: schemas.PaymentUpda
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Платеж не найден"
+            detail="Платёж не найден"
         )
 
     if payment_data.payment_type_id:
@@ -100,8 +94,8 @@ async def patch_payment(payment_id: uuid.UUID, payment_data: schemas.PaymentUpda
             models.PaymentType.id == payment_data.payment_type_id).first()
         if not payment_type:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Тип платежа не найден",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Тип платежа не найден"
             )
 
     for field, value in payment_data.model_dump(exclude_unset=True).items():

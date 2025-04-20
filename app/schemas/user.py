@@ -1,10 +1,9 @@
-from pydantic import BaseModel, EmailStr, validator, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 import uuid
 
 
 class UserBase(BaseModel):
-    """Базовая схема пользователя."""
     id: uuid.UUID
     email: EmailStr
     first_name: str
@@ -12,7 +11,7 @@ class UserBase(BaseModel):
     middle_name: Optional[str] = None
     description: Optional[str] = None
     phone_number: str
-    terminated: Optional[bool] = False
+    terminated: bool
 
     class Config:
         from_attributes = True
@@ -32,7 +31,6 @@ class UserUpdate(BaseModel):
 
 
 class UserCreate(BaseModel):
-    """Схема для создания пользователя."""
     email: EmailStr
     first_name: str
     last_name: str
@@ -43,7 +41,6 @@ class UserCreate(BaseModel):
 
     @field_validator('password')
     def password_strength(cls, v):
-        """Проверяет сложность пароля."""
         if len(v) < 8:
             raise ValueError('Пароль должен содержать минимум 8 символов')
         return v
@@ -53,7 +50,6 @@ class UserCreate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    """Схема для входа пользователя."""
     email: EmailStr
     password: str
 

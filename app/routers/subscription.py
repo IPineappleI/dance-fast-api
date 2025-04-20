@@ -4,15 +4,14 @@ from typing import List
 from datetime import datetime, timezone, timedelta
 from app.database import get_db
 from app import models, schemas
-from app.auth.jwt import get_current_active_user, get_current_admin
-from app.auth.password import get_password_hash
 
 import uuid
+
 
 router = APIRouter(
     prefix="/subscriptions",
     tags=["subscriptions"],
-    responses={404: {"description": "Подписка не найдена"}}
+    responses={404: {"description": "Абонемент не найден"}}
 )
 
 
@@ -26,43 +25,37 @@ async def create_subscription(
     if not subscription_template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Шаблон подписки не найден",
+            detail="Шаблон абонемента не найден"
         )
-    if not subscription_template.active:
+
+    if subscription_template.expiration_date and subscription_template.expiration_date <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Шаблон подписки не активен"
+            detail="Шаблон абонемента не активен"
         )
-    if datetime.now(timezone.utc) >= subscription_template.expiration_date:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Шаблон подписки просрочен"
-        )
+
     student = db.query(models.Student).filter(models.Student.id == subscription_data.student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Студент не найден"
         )
+
     payment = db.query(models.Payment).filter(models.Payment.id == subscription_data.payment_id).first()
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Платеж не найден"
-        )
-
-    if subscription_data.expiration_date <= datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Дата окончания подписки просрочена"
+            detail="Платёж не найден"
         )
 
     subscription = models.Subscription(
         student_id=student.id,
         subscription_template_id=subscription_template.id,
-        expiration_date=subscription_data.expiration_date,
         payment_id=payment.id
     )
+
+    if subscription_template.expiration_day_count:
+        subscription.expiration_date = datetime.now(timezone.utc) + timedelta(days=subscription_template.expiration_day_count)
 
     db.add(subscription)
     db.commit()
@@ -89,7 +82,7 @@ async def get_subscription_by_id(subscription_id: uuid.UUID, db: Session = Depen
     if db_subscription is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Подписка не найдена"
+            detail="Абонемент не найден"
         )
     return db_subscription
 
@@ -100,7 +93,7 @@ async def get_subscription_with_template_by_id(subscription_id: uuid.UUID, db: S
     if subscription is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Подписка не найдена"
+            detail="Абонемент не найден"
         )
 
     subscription_template = db.query(models.SubscriptionTemplate).filter(
@@ -108,22 +101,22 @@ async def get_subscription_with_template_by_id(subscription_id: uuid.UUID, db: S
     if subscription_template is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Шаблон подписки не найден"
+            detail="Шаблон абонемента не найден"
         )
 
     return subscription
 
 
-@router.patch("/{subscription_id}", response_model=schemas.SubscriptionInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{subscription_id}", response_model=schemas.SubscriptionFullInfo, status_code=status.HTTP_200_OK)
 async def patch_subscription(
-        subscription_id: uuid.UUID, subscription_data: schemas.SubscriptionUpdate,
+        subscription_id: uuid.UUID,
+        subscription_data: schemas.SubscriptionUpdate,
         db: Session = Depends(get_db)):
     subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
-
     if not subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Подписка не найдена"
+            detail="Абонемент не найден"
         )
 
     if subscription_data.student_id:
@@ -131,17 +124,16 @@ async def patch_subscription(
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Студент не найден",
+                detail="Студент не найден"
             )
 
     if subscription_data.subscription_template_id:
         subscription_template = db.query(models.SubscriptionTemplate).filter(
             models.SubscriptionTemplate.id == subscription_data.subscription_template_id).first()
-
         if not subscription_template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Шаблон подписки не найден",
+                detail="Шаблон абонемента не найден"
             )
 
     for field, value in subscription_data.model_dump(exclude_unset=True).items():
