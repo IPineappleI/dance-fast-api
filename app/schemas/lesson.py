@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.schemas import StudentInfo
+from app.schemas import StudentInfo, SubscriptionTemplateInfo
 from app.schemas.group import GroupInfo
 from app.schemas.lesson_type import LessonTypeInfo
 from app.schemas.classroom import ClassroomInfo
@@ -53,8 +53,27 @@ class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeInfo
     classroom: ClassroomInfo
     group: GroupInfo
+    #subscription_templates: List[SubscriptionTemplateInfo]
     actual_students: List[StudentInfo]
     actual_teachers: List[LessonTeacherBase]
+
+    class Config:
+        from_attributes = True
+
+
+class LessonSearch(BaseModel):
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    is_confirmed: Optional[bool] = None
+    are_neighbours_allowed: Optional[bool] = None
+    is_group: Optional[bool] = None
+
+    lesson_type_ids: Optional[List[uuid.UUID]] = None
+    subscription_template_ids: Optional[List[uuid.UUID]] = None
+    classroom_ids: Optional[List[uuid.UUID]] = None
+    group_ids: Optional[List[uuid.UUID]] = None
+    student_ids: Optional[List[uuid.UUID]] = None
+    teacher_ids: Optional[List[uuid.UUID]] = None
 
     class Config:
         from_attributes = True

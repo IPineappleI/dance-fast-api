@@ -8,9 +8,9 @@ import uuid
 
 
 router = APIRouter(
-    prefix="/subscription_templates",
-    tags=["subscription_templates"],
-    responses={404: {"description": "Шаблон подписки не найден"}}
+    prefix="/subscriptionTemplates",
+    tags=["subscription templates"],
+    responses={404: {"description": "Шаблон абонемента не найден"}}
 )
 
 
@@ -96,7 +96,7 @@ async def create_subscription_lesson_type(
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Стиль танца не найден"
+            detail="Тип занятия не найден"
         )
 
     existing_lesson_type = db.query(models.SubscriptionLessonType).filter(
@@ -107,7 +107,7 @@ async def create_subscription_lesson_type(
     if existing_lesson_type:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Шаблон абонемента уже имеет этот стиль танца"
+            detail="Шаблон абонемента уже имеет этот тип занятия"
         )
 
     subscription_lesson_type = models.SubscriptionLessonType(

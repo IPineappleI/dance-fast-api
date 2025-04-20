@@ -16,3 +16,4 @@ from app.schemas.group import *
 from app.schemas.association import *
 from app.schemas.admin import *
 from app.schemas.lesson import *
+from app.schemas.dance_style import *

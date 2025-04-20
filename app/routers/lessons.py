@@ -21,7 +21,7 @@ async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(g
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Стиль танца не найден"
+            detail="Тип занятия не найден"
         )
 
     classroom = db.query(models.Classroom).filter(models.Classroom.id == lesson_data.classroom_id).first()

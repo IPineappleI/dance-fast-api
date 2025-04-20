@@ -109,7 +109,7 @@ async def create_teacher_lesson_type(
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Стиль танца не найден"
+            detail="Тип занятия не найден"
         )
 
     existing_lesson_type = db.query(models.TeacherLessonType).filter(
@@ -120,7 +120,7 @@ async def create_teacher_lesson_type(
     if existing_lesson_type:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Преподаватель уже имеет этот стиль танца"
+            detail="Преподаватель уже имеет этот тип занятия"
         )
 
     teacher_lesson_type = models.TeacherLessonType(
@@ -153,7 +153,7 @@ async def delete_teacher_lesson_type(
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Стиль танца не найден"
+            detail="Тип занятия не найден"
         )
 
     existing_lesson_type = db.query(models.TeacherLessonType).filter(
@@ -163,12 +163,12 @@ async def delete_teacher_lesson_type(
 
     if not existing_lesson_type:
         response.status_code=status.HTTP_204_NO_CONTENT
-        return "Преподаватель не связан с этим стилем танца"
+        return "Преподаватель не связан с этим типом занятия"
 
     db.delete(existing_lesson_type)
     db.commit()
 
-    return "Стиль танца преподавателя удалён успешно"
+    return "Тип занятия преподавателя удалён успешно"
 
 
 @router.post("/groups/{teacher_id}/{group_id}", response_model=schemas.TeacherFullInfo,

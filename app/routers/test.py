@@ -524,28 +524,44 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.add(teacher_group)
     db.commit()
 
-    lesson_type_tango_group = models.LessonType(
-        name="Групповые занятия по танго",
+    dance_style_tango = models.DanceStyle(
+        name="Танго",
         description="Танго - основной стиль танца нашей школы"
+    )
+    db.add(dance_style_tango)
+    db.commit()
+
+    dance_style_hiphop = models.DanceStyle(
+        name="Хип-хоп",
+        description="Более современный и активный стиль танца"
+    )
+    db.add(dance_style_hiphop)
+    db.commit()
+
+    lesson_type_tango_group = models.LessonType(
+        dance_style_id=dance_style_tango.id,
+        is_group=True
     )
     db.add(lesson_type_tango_group)
     db.commit()
 
     lesson_type_tango_pair = models.LessonType(
-        name="Индивидуальные занятия по танго в паре"
+        dance_style_id=dance_style_tango.id,
+        is_group=False
     )
     db.add(lesson_type_tango_pair)
     db.commit()
 
     lesson_type_hiphop_group = models.LessonType(
-        name="Групповые занятия по хип-хопу",
-        description="Более современный и активный стиль танца"
+        dance_style_id=dance_style_hiphop.id,
+        is_group=True
     )
     db.add(lesson_type_hiphop_group)
     db.commit()
 
     lesson_type_hiphop_indiv = models.LessonType(
-        name="Индивидуальные занятия по хип-хопу"
+        dance_style_id=dance_style_hiphop.id,
+        is_group=False
     )
     db.add(lesson_type_hiphop_indiv)
     db.commit()

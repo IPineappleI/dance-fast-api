@@ -20,8 +20,8 @@ async def create_lesson_type(
         db: Session = Depends(get_db)
 ):
     lesson_type = models.LessonType(
-        name=lesson_type_data.name,
-        description=lesson_type_data.description
+        dance_style_id=lesson_type_data.dance_style_id,
+        is_group=lesson_type_data.is_group
     )
 
     db.add(lesson_type)

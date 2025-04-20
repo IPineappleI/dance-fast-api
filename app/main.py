@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import engine, Base, init_db
-from app.routers import users, auth, events, eventTypes, classrooms, subscription_templates, paymentTypes, payments, \
-    subscription, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test
+from app.routers import users, auth, events, eventTypes, classrooms, subscriptionTemplates, paymentTypes, payments, \
+    subscription, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test, danceStyles
 import os
 
 
@@ -58,10 +58,11 @@ app.include_router(lessons.router)
 app.include_router(lessonTypes.router)
 app.include_router(classrooms.router)
 app.include_router(subscription.router)
-app.include_router(subscription_templates.router)
+app.include_router(subscriptionTemplates.router)
 app.include_router(payments.router)
 app.include_router(paymentTypes.router)
 app.include_router(slots.router)
+app.include_router(danceStyles.router)
 app.include_router(test.router)
 
 
