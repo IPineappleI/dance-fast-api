@@ -25,6 +25,13 @@ class TeacherUpdate(UserUpdate):
         from_attributes = True
 
 
+class TeacherWithLessonTypes(TeacherInfo):
+    lesson_types: List[TeacherLessonTypeBase]
+
+    class Config:
+        from_attributes = True
+
+
 class TeacherFullInfo(TeacherInfo):
     groups: List[MemberGroupBase]
     lesson_types: List[TeacherLessonTypeBase]
