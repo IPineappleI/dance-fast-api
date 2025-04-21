@@ -13,8 +13,7 @@ from app.models.student import Student
 from app.models.teacher import Teacher
 from app.models.admin import Admin
 from app.auth.password import verify_password, get_password_hash
-from app.auth.jwt import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user
-
+from app.auth.jwt import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -91,7 +90,7 @@ async def login_for_access_token(
 
 @router.get("/me")
 async def get_current_user_full_info(
-        current_user: User = Depends(get_current_active_user),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     student = db.query(Student).options(

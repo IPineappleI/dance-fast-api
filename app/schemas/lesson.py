@@ -26,6 +26,55 @@ class LessonBase(BaseModel):
         from_attributes = True
 
 
+class LessonIndividual(BaseModel):
+    name: str
+    description: Optional[str] = None
+    lesson_type_id: uuid.UUID
+    start_time: datetime
+    finish_time: datetime
+    classroom_id: uuid.UUID
+    student_id: uuid.UUID
+    are_neighbours_allowed: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LessonGroup(BaseModel):
+    name: str
+    description: Optional[str] = None
+    lesson_type_id: uuid.UUID
+    start_time: datetime
+    finish_time: datetime
+    classroom_id: uuid.UUID
+    group_id: uuid.UUID
+    are_neighbours_allowed: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LessonRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    lesson_type_id: uuid.UUID
+    start_time: datetime
+    finish_time: datetime
+    teacher_id: uuid.UUID
+    are_neighbours_allowed: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LessonResponse(BaseModel):
+    is_confirmed: bool
+    classroom_id: Optional[uuid.UUID] = None
+
+    class Config:
+        from_attributes = True
+
+
 class LessonInfo(LessonBase):
     id: uuid.UUID
     created_at: datetime
