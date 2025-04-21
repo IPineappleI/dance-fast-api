@@ -4,14 +4,10 @@ from sqlalchemy.orm import Session, joinedload
 from datetime import timedelta
 
 from app.database import get_db
-from app.models import StudentGroup, Group, Subscription, SubscriptionTemplate, Payment, TeacherGroup, TeacherLessonType
-from app.schemas import StudentFullInfo
+from app.models import (Student, Teacher, StudentGroup, Group, Subscription, SubscriptionTemplate, Payment,
+                        TeacherGroup, TeacherLessonType, User, Admin)
+from app.schemas.student import StudentFullInfo, StudentCreate
 from app.schemas.token import Token
-from app.schemas.student import StudentCreate
-from app.models.user import User
-from app.models.student import Student
-from app.models.teacher import Teacher
-from app.models.admin import Admin
 from app.auth.password import verify_password, get_password_hash
 from app.auth.jwt import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 
@@ -26,11 +22,18 @@ async def register_student(
         student_data: StudentCreate,
         db: Session = Depends(get_db)
 ):
-    existing_user = db.query(User).filter(User.email == student_data.email).first()
-    if existing_user:
+    email_user = db.query(User).filter(User.email == student_data.email).first()
+    if email_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Пользователь с таким email уже существует"
+            detail="Email уже используется"
+        )
+
+    phone_user = db.query(User).filter(User.phone_number == student_data.phone_number).first()
+    if phone_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Номер телефона уже используется"
         )
 
     hashed_password = get_password_hash(student_data.password)
