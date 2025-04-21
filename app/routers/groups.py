@@ -48,13 +48,13 @@ async def create_group(
 
 
 @router.get("/", response_model=List[schemas.GroupInfo])
-async def get_all_groups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_groups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     groups = db.query(models.Group).offset(skip).limit(limit).all()
     return groups
 
 
 @router.get("/full-info", response_model=List[schemas.GroupFullInfo])
-async def get_all_groups_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_groups_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     groups = db.query(models.Group).offset(skip).limit(limit).all()
     return groups
 
@@ -85,7 +85,8 @@ async def get_group_full_info_by_id(group_id: uuid.UUID, db: Session = Depends(g
 async def patch_group(
         group_id: uuid.UUID,
         group_data: schemas.GroupUpdate,
-        db: Session = Depends(get_db)):
+        db: Session = Depends(get_db)
+):
     group = db.query(models.Group).filter(models.Group.id == group_id).first()
     if not group:
         raise HTTPException(

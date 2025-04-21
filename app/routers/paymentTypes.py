@@ -31,7 +31,7 @@ async def create_payment_type(
 
 
 @router.get("/", response_model=List[schemas.PaymentTypeInfo])
-async def get_all_payment_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_payment_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     payment_types = db.query(models.PaymentType).offset(skip).limit(limit).all()
     return payment_types
 
@@ -51,7 +51,8 @@ async def get_payment_type_by_id(payment_type_id: uuid.UUID, db: Session = Depen
 async def patch_payment_type(
         payment_type_id: uuid.UUID,
         payment_type_data: schemas.PaymentTypeUpdate,
-        db: Session = Depends(get_db)):
+        db: Session = Depends(get_db)
+):
     payment_type = db.query(models.PaymentType).filter(models.PaymentType.id == payment_type_id).first()
     if not payment_type:
         raise HTTPException(

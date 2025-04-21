@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import uuid
 from datetime import time, datetime
 
-from app.schemas.teacher import TeacherWithLessonTypes
+from app.schemas.teacher import TeacherMoreInfo
 
 
 class SlotBase(BaseModel):
@@ -19,7 +19,14 @@ class SlotBase(BaseModel):
 
 class SlotInfo(SlotBase):
     id: uuid.UUID
-    teacher: TeacherWithLessonTypes
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SlotFullInfo(SlotInfo):
+    teacher: TeacherMoreInfo
 
     class Config:
         from_attributes = True
@@ -47,7 +54,7 @@ class SlotSearch(BaseModel):
 
 
 class SlotAvailable(BaseModel):
-    teacher: TeacherWithLessonTypes
+    teacher: TeacherMoreInfo
     start_time: datetime
     finish_time: datetime
 

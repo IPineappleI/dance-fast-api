@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -14,6 +15,7 @@ class LevelBase(BaseModel):
 
 class LevelInfo(LevelBase):
     id: uuid.UUID
+    created_at: datetime
     terminated: bool
 
     class Config:

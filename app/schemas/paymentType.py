@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ class PaymentTypeBase(BaseModel):
 
 class PaymentTypeInfo(PaymentTypeBase):
     id: uuid.UUID
+    created_at: datetime
     terminated: bool
 
     class Config:

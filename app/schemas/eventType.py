@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 from typing import Optional
 import uuid
@@ -13,6 +15,7 @@ class EventTypeBase(BaseModel):
 
 class EventTypeInfo(EventTypeBase):
     id: uuid.UUID
+    created_at: datetime
     terminated: bool
 
     class Config:

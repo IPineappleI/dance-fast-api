@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=schemas.SubscriptionTemplateFullInfo, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.SubscriptionTemplateInfo, status_code=status.HTTP_201_CREATED)
 async def create_subscription_template(
         subscription_template_data: schemas.SubscriptionTemplateBase,
         db: Session = Depends(get_db)
@@ -35,13 +35,19 @@ async def create_subscription_template(
     return subscription_template
 
 
-@router.get("/", response_model=List[schemas.SubscriptionTemplateFullInfo])
-async def get_all_subscription_templates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/", response_model=List[schemas.SubscriptionTemplateInfo])
+async def get_subscription_templates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     subscription_templates = db.query(models.SubscriptionTemplate).offset(skip).limit(limit).all()
     return subscription_templates
 
 
-@router.get("/{subscription_template_id}", response_model=schemas.SubscriptionTemplateFullInfo)
+@router.get("/full-info", response_model=List[schemas.SubscriptionTemplateFullInfo])
+async def get_subscription_templates_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    subscription_templates = db.query(models.SubscriptionTemplate).offset(skip).limit(limit).all()
+    return subscription_templates
+
+
+@router.get("/{subscription_template_id}", response_model=schemas.SubscriptionTemplateInfo)
 async def get_subscription_template_by_id(subscription_template_id: uuid.UUID, db: Session = Depends(get_db)):
     subscription_template = db.query(models.SubscriptionTemplate).filter(
         models.SubscriptionTemplate.id == subscription_template_id).first()
@@ -53,11 +59,28 @@ async def get_subscription_template_by_id(subscription_template_id: uuid.UUID, d
     return subscription_template
 
 
-@router.patch("/{subscription_template_id}", response_model=schemas.SubscriptionTemplateFullInfo,
+@router.get("/full-info/{subscription_template_id}", response_model=schemas.SubscriptionTemplateFullInfo)
+async def get_subscription_template_full_info_by_id(
+        subscription_template_id: uuid.UUID,
+        db: Session = Depends(get_db)
+):
+    subscription_template = db.query(models.SubscriptionTemplate).filter(
+        models.SubscriptionTemplate.id == subscription_template_id).first()
+    if subscription_template is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Шаблон абонемента не найден"
+        )
+    return subscription_template
+
+
+@router.patch("/{subscription_template_id}", response_model=schemas.SubscriptionTemplateInfo,
               status_code=status.HTTP_200_OK)
-async def patch_subscription_template(subscription_template_id: uuid.UUID,
-                                      subscription_template_data: schemas.SubscriptionTemplateUpdate,
-                                      db: Session = Depends(get_db)):
+async def patch_subscription_template(
+        subscription_template_id: uuid.UUID,
+        subscription_template_data: schemas.SubscriptionTemplateUpdate,
+        db: Session = Depends(get_db)
+):
     subscription_template = db.query(models.SubscriptionTemplate).filter(
         models.SubscriptionTemplate.id == subscription_template_id).first()
     if not subscription_template:

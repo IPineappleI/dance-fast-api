@@ -15,6 +15,7 @@ class ClassroomBase(BaseModel):
 
 class ClassroomInfo(ClassroomBase):
     id: uuid.UUID
+    created_at: datetime
     terminated: bool
 
     class Config:

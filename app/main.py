@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.database import engine, Base, init_db
 from app.routers import users, auth, events, eventTypes, classrooms, subscriptionTemplates, paymentTypes, payments, \
-    subscription, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test, danceStyles
+    subscriptions, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test, danceStyles
 import os
 
 
@@ -45,25 +45,25 @@ app.add_middleware(
 )
 
 # Подключение роутеров
-app.include_router(auth.router)
 app.include_router(admins.router)
-app.include_router(users.router)
-app.include_router(students.router)
-app.include_router(teachers.router)
-app.include_router(groups.router)
-app.include_router(levels.router)
+app.include_router(auth.router)
+app.include_router(classrooms.router)
+app.include_router(danceStyles.router)
 app.include_router(events.router)
 app.include_router(eventTypes.router)
+app.include_router(groups.router)
 app.include_router(lessons.router)
 app.include_router(lessonTypes.router)
-app.include_router(classrooms.router)
-app.include_router(subscription.router)
-app.include_router(subscriptionTemplates.router)
+app.include_router(levels.router)
 app.include_router(payments.router)
 app.include_router(paymentTypes.router)
 app.include_router(slots.router)
-app.include_router(danceStyles.router)
+app.include_router(students.router)
+app.include_router(subscriptions.router)
+app.include_router(subscriptionTemplates.router)
+app.include_router(teachers.router)
 app.include_router(test.router)
+app.include_router(users.router)
 
 
 @app.get("/")

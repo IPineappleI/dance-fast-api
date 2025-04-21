@@ -3,7 +3,8 @@ from typing import Optional, List
 from datetime import datetime
 import uuid
 import decimal
-from app.schemas.association import SubscriptionLessonTypeBase
+
+from app.schemas.association import LessonTypeForLists
 
 
 class SubscriptionTemplateBase(BaseModel):
@@ -20,6 +21,14 @@ class SubscriptionTemplateBase(BaseModel):
 
 class SubscriptionTemplateInfo(SubscriptionTemplateBase):
     id: uuid.UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionTemplateFullInfo(SubscriptionTemplateInfo):
+    lesson_types: List[LessonTypeForLists]
 
     class Config:
         from_attributes = True
@@ -32,13 +41,6 @@ class SubscriptionTemplateUpdate(BaseModel):
     expiration_date: Optional[datetime] = None
     expiration_day_count: Optional[int] = None
     price: Optional[decimal.Decimal] = None
-
-    class Config:
-        from_attributes = True
-
-
-class SubscriptionTemplateFullInfo(SubscriptionTemplateInfo):
-    lesson_types: List[SubscriptionLessonTypeBase]
 
     class Config:
         from_attributes = True

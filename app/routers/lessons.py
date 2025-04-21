@@ -16,7 +16,10 @@ router = APIRouter(
 
 
 @router.post("/", response_model=schemas.LessonInfo, status_code=status.HTTP_201_CREATED)
-async def create_lesson(lesson_data: schemas.LessonBase, db: Session = Depends(get_db)):
+async def create_lesson(
+        lesson_data: schemas.LessonBase,
+        db: Session = Depends(get_db)
+):
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_data.lesson_type_id).first()
     if not lesson_type:
         raise HTTPException(
@@ -114,9 +117,11 @@ def apply_filters_to_lessons(lessons: Query, filters):
 
 
 @router.post("/search", response_model=List[schemas.LessonInfo])
-async def search_lessons(filters: schemas.LessonSearch,
-                         skip: int = 0, limit: int = 100,
-                         db: Session = Depends(get_db)):
+async def search_lessons(
+        filters: schemas.LessonSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
     lessons = db.query(models.Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
     lessons = lessons.offset(skip).limit(limit).all()
@@ -125,9 +130,11 @@ async def search_lessons(filters: schemas.LessonSearch,
 
 
 @router.post("/search/full-info", response_model=List[schemas.LessonFullInfo])
-async def search_lessons_full_info(filters: schemas.LessonSearch,
-                                   skip: int = 0, limit: int = 100,
-                                   db: Session = Depends(get_db)):
+async def search_lessons_full_info(
+        filters: schemas.LessonSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
     lessons = db.query(models.Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
     lessons = lessons.offset(skip).limit(limit).all()
@@ -161,7 +168,8 @@ async def get_lesson_full_info_by_id(lesson_id: uuid.UUID, db: Session = Depends
 async def patch_lesson(
         lesson_id: uuid.UUID,
         lesson_data: schemas.LessonUpdate,
-        db: Session = Depends(get_db)):
+        db: Session = Depends(get_db)
+):
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(

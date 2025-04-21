@@ -40,13 +40,13 @@ async def create_teacher(
 
 
 @router.get("/", response_model=List[schemas.TeacherInfo])
-async def get_all_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     teachers = db.query(models.Teacher).offset(skip).limit(limit).all()
     return teachers
 
 
 @router.get("/full-info", response_model=List[schemas.TeacherFullInfo])
-async def get_all_teachers_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_teachers_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     teachers = db.query(models.Teacher).offset(skip).limit(limit).all()
     return teachers
 
@@ -75,7 +75,11 @@ async def get_teacher_full_info_by_id(teacher_id: uuid.UUID, db: Session = Depen
 
 
 @router.patch("/{teacher_id}", response_model=schemas.TeacherInfo, status_code=status.HTTP_200_OK)
-async def patch_teacher(teacher_id: uuid.UUID, teacher_data: schemas.TeacherUpdate, db: Session = Depends(get_db)):
+async def patch_teacher(
+        teacher_id: uuid.UUID,
+        teacher_data: schemas.TeacherUpdate,
+        db: Session = Depends(get_db)
+):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
@@ -93,11 +97,7 @@ async def patch_teacher(teacher_id: uuid.UUID, teacher_data: schemas.TeacherUpda
 
 @router.post("/lesson-types/{teacher_id}/{lesson_type_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_teacher_lesson_type(
-        teacher_id: uuid.UUID,
-        lesson_type_id: uuid.UUID,
-        db: Session = Depends(get_db)
-):
+async def create_teacher_lesson_type(teacher_id: uuid.UUID, lesson_type_id: uuid.UUID, db: Session = Depends(get_db)):
     teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
@@ -173,11 +173,7 @@ async def delete_teacher_lesson_type(
 
 @router.post("/groups/{teacher_id}/{group_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_teacher_group(
-        teacher_id: uuid.UUID,
-        group_id: uuid.UUID,
-        db: Session = Depends(get_db)
-):
+async def create_teacher_group(teacher_id: uuid.UUID, group_id: uuid.UUID, db: Session = Depends(get_db)):
     teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
@@ -253,11 +249,7 @@ async def delete_teacher_group(
 
 @router.post("/lessons/{teacher_id}/{lesson_id}", response_model=schemas.LessonFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_teacher_lesson(
-        teacher_id: uuid.UUID,
-        lesson_id: uuid.UUID,
-        db: Session = Depends(get_db)
-):
+async def create_teacher_lesson(teacher_id: uuid.UUID, lesson_id: uuid.UUID, db: Session = Depends(get_db)):
     teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(

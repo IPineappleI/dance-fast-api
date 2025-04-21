@@ -62,30 +62,12 @@ async def create_slot(
     return slot
 
 
-@router.get("/", response_model=List[schemas.SlotInfo])
-async def get_all_slots(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    slots = db.query(models.Slot).offset(skip).limit(limit).all()
-    return slots
-
-
-@router.get("/byTeacher/{teacher_id}", response_model=List[schemas.SlotInfo])
-async def get_all_slots_by_teacher_id(teacher_id: uuid.UUID, db: Session = Depends(get_db)):
-    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
-    if not teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Преподаватель не найден"
-        )
-
-    slots = db.query(models.Slot).filter(models.Slot.teacher_id == teacher_id).all()
-
-    return slots
-
-
 @router.post("/search/available", response_model=List[schemas.SlotAvailable])
-async def search_available_slots(filters: schemas.SlotSearch,
-                                 skip: int = 0, limit: int = 100,
-                                 db: Session = Depends(get_db)):
+async def search_available_slots(
+        filters: schemas.SlotSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
     if filters.date_from > filters.date_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -140,6 +122,18 @@ async def search_available_slots(filters: schemas.SlotSearch,
     return available_slots
 
 
+@router.get("/", response_model=List[schemas.SlotInfo])
+async def get_slots(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    slots = db.query(models.Slot).offset(skip).limit(limit).all()
+    return slots
+
+
+@router.get("/full-info", response_model=List[schemas.SlotFullInfo])
+async def get_slots_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    slots = db.query(models.Slot).offset(skip).limit(limit).all()
+    return slots
+
+
 @router.get("/{slot_id}", response_model=schemas.SlotInfo)
 async def get_slot_by_id(slot_id: uuid.UUID, db: Session = Depends(get_db)):
     slot = db.query(models.Slot).filter(models.Slot.id == slot_id).first()
@@ -149,6 +143,31 @@ async def get_slot_by_id(slot_id: uuid.UUID, db: Session = Depends(get_db)):
             detail="Слот не найден"
         )
     return slot
+
+
+@router.get("/full-info/{slot_id}", response_model=schemas.SlotFullInfo)
+async def get_slot_full_info_by_id(slot_id: uuid.UUID, db: Session = Depends(get_db)):
+    slot = db.query(models.Slot).filter(models.Slot.id == slot_id).first()
+    if not slot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Слот не найден"
+        )
+    return slot
+
+
+@router.get("/by-teacher/{teacher_id}", response_model=List[schemas.SlotInfo])
+async def get_slots_by_teacher_id(teacher_id: uuid.UUID, db: Session = Depends(get_db)):
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Преподаватель не найден"
+        )
+
+    slots = db.query(models.Slot).filter(models.Slot.teacher_id == teacher_id).all()
+
+    return slots
 
 
 @router.delete("/{slot_id}")
@@ -165,7 +184,11 @@ async def delete_slot_by_id(slot_id: uuid.UUID, response: Response, db: Session 
 
 
 @router.patch("/{slot_id}", response_model=schemas.SlotInfo, status_code=status.HTTP_200_OK)
-async def patch_slot(slot_id: uuid.UUID, slot_data: schemas.SlotUpdate, db: Session = Depends(get_db)):
+async def patch_slot(
+        slot_id: uuid.UUID,
+        slot_data: schemas.SlotUpdate,
+        db: Session = Depends(get_db)
+):
     slot = db.query(models.Slot).filter(models.Slot.id == slot_id).first()
     if not slot:
         raise HTTPException(

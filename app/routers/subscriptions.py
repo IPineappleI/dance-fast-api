@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=schemas.SubscriptionFullInfo, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.SubscriptionInfo, status_code=status.HTTP_201_CREATED)
 async def create_subscription(
         subscription_data: schemas.SubscriptionBase,
         db: Session = Depends(get_db)
@@ -65,13 +65,13 @@ async def create_subscription(
 
 
 @router.get("/", response_model=List[schemas.SubscriptionInfo])
-async def get_all_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     subscriptions = db.query(models.Subscription).offset(skip).limit(limit).all()
     return subscriptions
 
 
 @router.get("/full-info", response_model=List[schemas.SubscriptionFullInfo])
-async def get_all_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_subscriptions_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     subscriptions = db.query(models.Subscription).offset(skip).limit(limit).all()
     return subscriptions
 
@@ -88,7 +88,7 @@ async def get_subscription_by_id(subscription_id: uuid.UUID, db: Session = Depen
 
 
 @router.get("/full-info/{subscription_id}", response_model=schemas.SubscriptionFullInfo)
-async def get_subscription_with_template_by_id(subscription_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_subscription_full_info_by_id(subscription_id: uuid.UUID, db: Session = Depends(get_db)):
     subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
     if subscription is None:
         raise HTTPException(
@@ -107,11 +107,12 @@ async def get_subscription_with_template_by_id(subscription_id: uuid.UUID, db: S
     return subscription
 
 
-@router.patch("/{subscription_id}", response_model=schemas.SubscriptionFullInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{subscription_id}", response_model=schemas.SubscriptionInfo, status_code=status.HTTP_200_OK)
 async def patch_subscription(
         subscription_id: uuid.UUID,
         subscription_data: schemas.SubscriptionUpdate,
-        db: Session = Depends(get_db)):
+        db: Session = Depends(get_db)
+):
     subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
     if not subscription:
         raise HTTPException(

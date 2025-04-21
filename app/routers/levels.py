@@ -33,7 +33,7 @@ async def create_level(
 
 
 @router.get("/", response_model=List[schemas.LevelInfo])
-async def get_all_levels(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_levels(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     levels = db.query(models.Level).offset(skip).limit(limit).all()
     return levels
 
@@ -50,7 +50,11 @@ async def get_level_by_id(level_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.patch("/{level_id}", response_model=schemas.LevelInfo, status_code=status.HTTP_200_OK)
-async def patch_level(level_id: uuid.UUID, level_data: schemas.LevelUpdate, db: Session = Depends(get_db)):
+async def patch_level(
+        level_id: uuid.UUID,
+        level_data: schemas.LevelUpdate,
+        db: Session = Depends(get_db)
+):
     level = db.query(models.Level).filter(models.Level.id == level_id).first()
     if not level:
         raise HTTPException(

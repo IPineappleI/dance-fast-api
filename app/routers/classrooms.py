@@ -33,9 +33,11 @@ async def create_classroom(
 
 
 @router.post("/search/available", response_model=List[schemas.ClassroomInfo])
-async def search_available_classrooms(filters: schemas.ClassroomSearch,
-                                      skip: int = 0, limit: int = 100,
-                                      db: Session = Depends(get_db)):
+async def search_available_classrooms(
+        filters: schemas.ClassroomSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
     if filters.date_from > filters.date_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -55,6 +57,12 @@ async def search_available_classrooms(filters: schemas.ClassroomSearch,
     return classrooms
 
 
+@router.get("/", response_model=List[schemas.ClassroomInfo])
+async def get_classrooms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    classroom = db.query(models.Classroom).offset(skip).limit(limit).all()
+    return classroom
+
+
 @router.get("/{classroom_id}", response_model=schemas.ClassroomInfo)
 async def get_classroom_by_id(classroom_id: uuid.UUID, db: Session = Depends(get_db)):
     classroom = db.query(models.Classroom).filter(models.Classroom.id == classroom_id).first()
@@ -63,13 +71,16 @@ async def get_classroom_by_id(classroom_id: uuid.UUID, db: Session = Depends(get
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Зал не найден"
         )
+
     return classroom
 
 
 @router.patch("/{classroom_id}", response_model=schemas.ClassroomInfo, status_code=status.HTTP_200_OK)
-async def patch_classroom(classroom_id: uuid.UUID,
-                          classroom_data: schemas.ClassroomUpdate,
-                          db: Session = Depends(get_db)):
+async def patch_classroom(
+        classroom_id: uuid.UUID,
+        classroom_data: schemas.ClassroomUpdate,
+        db: Session = Depends(get_db)
+):
     classroom = db.query(models.Classroom).filter(models.Classroom.id == classroom_id).first()
     if not classroom:
         raise HTTPException(

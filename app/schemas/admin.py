@@ -1,4 +1,6 @@
 import uuid
+from datetime import datetime
+
 from pydantic import BaseModel
 from app.schemas.user import UserBase, UserUpdate
 
@@ -12,6 +14,13 @@ class AdminBase(BaseModel):
 
 class AdminInfo(AdminBase):
     id: uuid.UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminFullInfo(AdminInfo):
     user: UserBase
 
     class Config:

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 import uuid
@@ -11,6 +13,7 @@ class UserBase(BaseModel):
     middle_name: Optional[str] = None
     description: Optional[str] = None
     phone_number: str
+    created_at: datetime
     terminated: bool
 
     class Config:

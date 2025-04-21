@@ -42,13 +42,13 @@ async def create_event(
 
 
 @router.get("/", response_model=List[schemas.EventInfo])
-async def get_all_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     events = db.query(models.Event).offset(skip).limit(limit).all()
     return events
 
 
 @router.get("/full-info", response_model=List[schemas.EventFullInfo])
-async def get_all_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_events_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     events = db.query(models.Event).offset(skip).limit(limit).all()
     return events
 
@@ -65,7 +65,7 @@ async def get_event_by_id(event_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/full-info/{event_id}", response_model=schemas.EventFullInfo)
-async def get_event_with_type_by_id(event_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_event_full_info_by_id(event_id: uuid.UUID, db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(
@@ -84,7 +84,11 @@ async def get_event_with_type_by_id(event_id: uuid.UUID, db: Session = Depends(g
 
 
 @router.patch("/{event_id}", response_model=schemas.EventInfo, status_code=status.HTTP_200_OK)
-async def patch_event(event_id: uuid.UUID, event_data: schemas.EventUpdate, db: Session = Depends(get_db)):
+async def patch_event(
+        event_id: uuid.UUID,
+        event_data: schemas.EventUpdate,
+        db: Session = Depends(get_db)
+):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(

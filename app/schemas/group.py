@@ -1,8 +1,11 @@
+from datetime import datetime
+
 from pydantic import BaseModel
+
+from app.schemas.association import StudentForLists, TeacherForLists
 from app.schemas.level import LevelInfo
 import uuid
 from typing import Optional, List
-from app.schemas.association import GroupTeacherBase, GroupStudentBase
 
 
 class GroupBase(BaseModel):
@@ -17,7 +20,23 @@ class GroupBase(BaseModel):
 
 class GroupInfo(GroupBase):
     id: uuid.UUID
+    created_at: datetime
     terminated: bool
+
+    class Config:
+        from_attributes = True
+
+
+class GroupMoreInfo(GroupInfo):
+    level: LevelInfo
+
+    class Config:
+        from_attributes = True
+
+
+class GroupFullInfo(GroupMoreInfo):
+    students: List[StudentForLists]
+    teachers: List[TeacherForLists]
 
     class Config:
         from_attributes = True
@@ -29,15 +48,6 @@ class GroupUpdate(BaseModel):
     level_id: Optional[uuid.UUID] = None
     max_capacity: Optional[int] = None
     terminated: Optional[bool] = None
-
-    class Config:
-        from_attributes = True
-
-
-class GroupFullInfo(GroupInfo):
-    level: LevelInfo
-    students: List[GroupStudentBase]
-    teachers: List[GroupTeacherBase]
 
     class Config:
         from_attributes = True

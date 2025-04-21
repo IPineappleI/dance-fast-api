@@ -1,9 +1,10 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
 import uuid
 
-from app.schemas.dance_style import DanceStyleInfo
+from app.schemas.danceStyle import DanceStyleInfo
 
 
 class LessonTypeBase(BaseModel):
@@ -16,8 +17,15 @@ class LessonTypeBase(BaseModel):
 
 class LessonTypeInfo(LessonTypeBase):
     id: uuid.UUID
-    dance_style: DanceStyleInfo
+    created_at: datetime
     terminated: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LessonTypeFullInfo(LessonTypeInfo):
+    dance_style: DanceStyleInfo
 
     class Config:
         from_attributes = True

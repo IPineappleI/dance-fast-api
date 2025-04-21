@@ -32,7 +32,7 @@ async def create_event_type(
 
 
 @router.get("/", response_model=List[schemas.EventTypeInfo])
-async def get_all_event_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_event_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     event_types = db.query(models.EventType).offset(skip).limit(limit).all()
     return event_types
 

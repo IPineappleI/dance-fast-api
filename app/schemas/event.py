@@ -6,9 +6,9 @@ from app.schemas.eventType import EventTypeInfo
 
 
 class EventBase(BaseModel):
-    event_type_id: uuid.UUID
     name: str
     description: Optional[str] = None
+    event_type_id: uuid.UUID
     start_time: datetime
     photo_url: Optional[str] = None
 
@@ -18,19 +18,8 @@ class EventBase(BaseModel):
 
 class EventInfo(EventBase):
     id: uuid.UUID
+    created_at: datetime
     terminated: bool
-
-    class Config:
-        from_attributes = True
-
-
-class EventUpdate(BaseModel):
-    event_type_id: Optional[uuid.UUID] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    start_time: Optional[datetime] = None
-    photo_url: Optional[str] = None
-    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -38,6 +27,18 @@ class EventUpdate(BaseModel):
 
 class EventFullInfo(EventInfo):
     event_type: EventTypeInfo
+
+    class Config:
+        from_attributes = True
+
+
+class EventUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    event_type_id: Optional[uuid.UUID] = None
+    start_time: Optional[datetime] = None
+    photo_url: Optional[str] = None
+    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True

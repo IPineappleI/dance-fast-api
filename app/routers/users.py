@@ -54,7 +54,7 @@ async def create_user(
 
 
 @router.get("/", response_model=List[schemas.UserBase])
-async def get_all_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = db.query(models.User).offset(skip).limit(limit).all()
     return users
 
@@ -71,7 +71,11 @@ async def get_user_by_id(user_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.patch("/{user_id}", response_model=schemas.UserBase, status_code=status.HTTP_200_OK)
-async def patch_user(user_id: uuid.UUID, user_data: schemas.UserUpdate, db: Session = Depends(get_db)):
+async def patch_user(
+        user_id: uuid.UUID,
+        user_data: schemas.UserUpdate,
+        db: Session = Depends(get_db)
+):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(

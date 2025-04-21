@@ -33,7 +33,7 @@ async def create_dance_style(
 
 
 @router.get("/", response_model=List[schemas.DanceStyleInfo])
-async def get_all_dance_styles(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_dance_styles(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     dance_styles = db.query(models.DanceStyle).offset(skip).limit(limit).all()
     return dance_styles
 
@@ -50,9 +50,11 @@ async def get_dance_style_by_id(dance_style_id: uuid.UUID, db: Session = Depends
 
 
 @router.patch("/{dance_style_id}", response_model=schemas.DanceStyleInfo, status_code=status.HTTP_200_OK)
-async def patch_dance_style(dance_style_id: uuid.UUID,
-                            dance_style_data: schemas.DanceStyleUpdate,
-                            db: Session = Depends(get_db)):
+async def patch_dance_style(
+        dance_style_id: uuid.UUID,
+        dance_style_data: schemas.DanceStyleUpdate,
+        db: Session = Depends(get_db)
+):
     dance_style = db.query(models.DanceStyle).filter(models.DanceStyle.id == dance_style_id).first()
     if not dance_style:
         raise HTTPException(

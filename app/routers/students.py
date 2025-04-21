@@ -48,13 +48,13 @@ async def create_student(
 
 
 @router.get("/", response_model=List[schemas.StudentInfo])
-async def get_all_students(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_students(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     students = db.query(models.Student).offset(skip).limit(limit).all()
     return students
 
 
 @router.get("/full-info", response_model=List[schemas.StudentFullInfo])
-async def get_all_students_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_students_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     students = db.query(models.Student).offset(skip).limit(limit).all()
     return students
 
@@ -83,7 +83,11 @@ async def get_student_full_info_by_id(student_id: uuid.UUID, db: Session = Depen
 
 
 @router.patch("/{student_id}", response_model=schemas.StudentInfo, status_code=status.HTTP_200_OK)
-async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpdate, db: Session = Depends(get_db)):
+async def patch_student(
+        student_id: uuid.UUID,
+        student_data: schemas.StudentUpdate,
+        db: Session = Depends(get_db)
+):
     student = db.query(models.Student).filter(models.Student.id == student_id).first()
     if not student:
         raise HTTPException(
@@ -114,11 +118,7 @@ async def patch_student(student_id: uuid.UUID, student_data: schemas.StudentUpda
 
 @router.post("/groups/{student_id}/{group_id}", response_model=schemas.StudentFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_student_group(
-        student_id: uuid.UUID,
-        group_id: uuid.UUID,
-        db: Session = Depends(get_db)
-):
+async def create_student_group(student_id: uuid.UUID, group_id: uuid.UUID, db: Session = Depends(get_db)):
     student = db.query(models.Student).options().filter(models.Student.id == student_id).first()
     if not student:
         raise HTTPException(

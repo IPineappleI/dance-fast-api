@@ -1,64 +1,40 @@
 from pydantic import BaseModel
 
 
-class GroupStudentBase(BaseModel):
-    student: "StudentInfo"
+class StudentForLists(BaseModel):
+    student: "StudentMoreInfo"
 
     class Config:
         from_attributes = True
 
 
-class GroupTeacherBase(BaseModel):
-    teacher: "TeacherInfo"
+class TeacherForLists(BaseModel):
+    teacher: "TeacherMoreInfo"
 
     class Config:
         from_attributes = True
 
 
-class MemberGroupBase(BaseModel):
-    group: "GroupInfo"
+class GroupForLists(BaseModel):
+    group: "GroupMoreInfo"
 
     class Config:
         from_attributes = True
 
 
-class TeacherLessonTypeBase(BaseModel):
-    lesson_type: "LessonTypeInfo"
+class LessonTypeForLists(BaseModel):
+    lesson_type: "LessonTypeFullInfo"
 
     class Config:
         from_attributes = True
 
 
-class LessonTeacherBase(BaseModel):
-    teacher: "TeacherInfo"
+from app.schemas.student import StudentMoreInfo
+from app.schemas.teacher import TeacherMoreInfo
+from app.schemas.group import GroupMoreInfo
+from app.schemas.lessonType import LessonTypeFullInfo
 
-    class Config:
-        from_attributes = True
-
-
-class LessonStudentBase(BaseModel):
-    student: "StudentInfo"
-
-    class Config:
-        from_attributes = True
-
-
-class SubscriptionLessonTypeBase(BaseModel):
-    lesson_type: "LessonTypeInfo"
-
-    class Config:
-        from_attributes = True
-
-
-from app.schemas.student import StudentInfo
-from app.schemas.teacher import TeacherInfo
-from app.schemas.group import GroupInfo
-from app.schemas.lesson_type import LessonTypeInfo
-
-GroupStudentBase.model_rebuild()
-GroupTeacherBase.model_rebuild()
-MemberGroupBase.model_rebuild()
-TeacherLessonTypeBase.model_rebuild()
-LessonTeacherBase.model_rebuild()
-LessonStudentBase.model_rebuild()
-SubscriptionLessonTypeBase.model_rebuild()
+StudentForLists.model_rebuild()
+TeacherForLists.model_rebuild()
+GroupForLists.model_rebuild()
+LessonTypeForLists.model_rebuild()

@@ -39,13 +39,13 @@ async def create_payment(
 
 
 @router.get("/", response_model=List[schemas.PaymentInfo])
-async def get_all_payments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_payments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     payments = db.query(models.Payment).offset(skip).limit(limit).all()
     return payments
 
 
-@router.get("/withType", response_model=List[schemas.PaymentInfoWithType])
-async def get_all_payments_with_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/full-info", response_model=List[schemas.PaymentFullInfo])
+async def get_payments_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     payments = db.query(models.Payment).offset(skip).limit(limit).all()
     return payments
 
@@ -61,8 +61,8 @@ async def get_payment_by_id(payment_id: uuid.UUID, db: Session = Depends(get_db)
     return payment
 
 
-@router.get("/withType/{payment_id}", response_model=schemas.PaymentInfoWithType)
-async def get_payment_with_type_by_id(payment_id: uuid.UUID, db: Session = Depends(get_db)):
+@router.get("/full-info/{payment_id}", response_model=schemas.PaymentFullInfo)
+async def get_payment_full_info_by_id(payment_id: uuid.UUID, db: Session = Depends(get_db)):
     payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
     if payment is None:
         raise HTTPException(
@@ -81,7 +81,11 @@ async def get_payment_with_type_by_id(payment_id: uuid.UUID, db: Session = Depen
 
 
 @router.patch("/{payment_id}", response_model=schemas.PaymentInfo, status_code=status.HTTP_200_OK)
-async def patch_payment(payment_id: uuid.UUID, payment_data: schemas.PaymentUpdate, db: Session = Depends(get_db)):
+async def patch_payment(
+        payment_id: uuid.UUID,
+        payment_data: schemas.PaymentUpdate,
+        db: Session = Depends(get_db)
+):
     payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(

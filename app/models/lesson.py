@@ -13,7 +13,7 @@ class Lesson(BaseModel):
     lesson_type_id = Column(UUID(as_uuid=True), ForeignKey("lesson_types.id"), nullable=False)
     start_time = Column(DateTime(timezone=True), nullable=False)
     finish_time = Column(DateTime(timezone=True), nullable=False)
-    classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=False)
+    classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=True)
     group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), nullable=True)
     is_confirmed = Column(Boolean, nullable=False)
     are_neighbours_allowed = Column(Boolean, nullable=False)

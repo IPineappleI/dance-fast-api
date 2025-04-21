@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 
-from app.schemas import StudentInfo, SubscriptionTemplateInfo
-from app.schemas.group import GroupInfo
-from app.schemas.lesson_type import LessonTypeInfo
+from app.schemas.student import StudentMoreInfo
+from app.schemas.association import TeacherForLists
+from app.schemas.subscriptionTemplate import SubscriptionTemplateFullInfo
+from app.schemas.group import GroupMoreInfo
+from app.schemas.lessonType import LessonTypeFullInfo
 from app.schemas.classroom import ClassroomInfo
-from app.schemas.association import LessonTeacherBase
 import uuid
 from typing import Optional, List
 from datetime import datetime
@@ -16,8 +17,9 @@ class LessonBase(BaseModel):
     lesson_type_id: uuid.UUID
     start_time: datetime
     finish_time: datetime
-    classroom_id: uuid.UUID
+    classroom_id: Optional[uuid.UUID] = None
     group_id: Optional[uuid.UUID] = None
+    is_confirmed: bool
     are_neighbours_allowed: bool
 
     class Config:
@@ -26,8 +28,20 @@ class LessonBase(BaseModel):
 
 class LessonInfo(LessonBase):
     id: uuid.UUID
-    is_confirmed: bool
+    created_at: datetime
     terminated: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LessonFullInfo(LessonInfo):
+    lesson_type: LessonTypeFullInfo
+    classroom: Optional[ClassroomInfo] = None
+    subscription_templates: List[SubscriptionTemplateFullInfo]
+    group: Optional[GroupMoreInfo] = None
+    actual_students: List[StudentMoreInfo]
+    actual_teachers: List[TeacherForLists]
 
     class Config:
         from_attributes = True
@@ -44,18 +58,6 @@ class LessonUpdate(BaseModel):
     is_confirmed: Optional[bool] = None
     are_neighbours_allowed: Optional[bool] = None
     terminated: Optional[bool] = None
-
-    class Config:
-        from_attributes = True
-
-
-class LessonFullInfo(LessonInfo):
-    lesson_type: LessonTypeInfo
-    classroom: ClassroomInfo
-    subscription_templates: List[SubscriptionTemplateInfo]
-    group: Optional[GroupInfo] = None
-    actual_students: List[StudentInfo]
-    actual_teachers: List[LessonTeacherBase]
 
     class Config:
         from_attributes = True
