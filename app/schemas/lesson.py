@@ -103,6 +103,7 @@ class LessonSearch(BaseModel):
     is_confirmed: Optional[bool] = None
     are_neighbours_allowed: Optional[bool] = None
     is_group: Optional[bool] = None
+    terminated: Optional[bool] = None
 
     teacher_ids: Optional[List[uuid.UUID]] = None
     student_ids: Optional[List[uuid.UUID]] = None

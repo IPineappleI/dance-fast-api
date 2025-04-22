@@ -361,6 +361,8 @@ def apply_filters_to_lessons(lessons: Query, filters):
 
     if type(filters.is_confirmed) is bool:
         lessons = lessons.filter(models.Lesson.is_confirmed == filters.is_confirmed)
+    if type(filters.terminated) is bool:
+        lessons = lessons.filter(models.Lesson.terminated == filters.terminated)
     if type(filters.are_neighbours_allowed) is bool:
         lessons = lessons.filter(models.Lesson.are_neighbours_allowed == filters.are_neighbours_allowed)
     if type(filters.is_group) is bool:
