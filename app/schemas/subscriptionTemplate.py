@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 import uuid
 
-from app.schemas.association import AssociationLessonType
+from app.schemas.lessonType import LessonTypeFullInfo
 
 
 class SubscriptionTemplateBase(BaseModel):
@@ -27,7 +27,7 @@ class SubscriptionTemplateInfo(SubscriptionTemplateBase):
 
 
 class SubscriptionTemplateFullInfo(SubscriptionTemplateInfo):
-    lesson_types: List[AssociationLessonType]
+    lesson_types: List[LessonTypeFullInfo]
 
     class Config:
         from_attributes = True
@@ -40,6 +40,14 @@ class SubscriptionTemplateUpdate(BaseModel):
     expiration_date: Optional[datetime] = None
     expiration_day_count: Optional[int] = None
     price: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionTemplateSearch(BaseModel):
+    lesson_type_ids: Optional[List[uuid.UUID]] = None
+    dance_style_ids: Optional[List[uuid.UUID]] = None
 
     class Config:
         from_attributes = True

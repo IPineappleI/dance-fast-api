@@ -74,7 +74,7 @@ async def get_teacher_full_info_by_id(teacher_id: uuid.UUID, db: Session = Depen
     return teacher
 
 
-@router.patch("/{teacher_id}", response_model=schemas.TeacherInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{teacher_id}", response_model=schemas.TeacherFullInfo, status_code=status.HTTP_200_OK)
 async def patch_teacher(
         teacher_id: uuid.UUID,
         teacher_data: schemas.TeacherUpdate,

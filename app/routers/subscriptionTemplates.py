@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy import exists, and_
+from sqlalchemy.orm import Session, Query
 from typing import List
 from app.database import get_db
 from app import models, schemas
@@ -35,15 +36,50 @@ async def create_subscription_template(
     return subscription_template
 
 
-@router.get("/", response_model=List[schemas.SubscriptionTemplateInfo])
-async def get_subscription_templates(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    subscription_templates = db.query(models.SubscriptionTemplate).offset(skip).limit(limit).all()
+def apply_filters_to_subscription_templates(subscription_templates: Query, filters, db: Session):
+    if filters.lesson_type_ids:
+        subscription_templates = subscription_templates.filter(exists(models.SubscriptionLessonType).where(
+            and_(
+                models.SubscriptionLessonType.subscription_template_id == models.SubscriptionTemplate.id,
+                models.SubscriptionLessonType.lesson_type_id.in_(filters.lesson_type_ids)
+            )
+        ))
+
+    if filters.dance_style_ids:
+        subscription_templates = subscription_templates.filter(db.query(models.LessonType).join(
+            models.SubscriptionLessonType,
+            and_(
+                models.SubscriptionLessonType.lesson_type_id == models.LessonType.id,
+                models.SubscriptionLessonType.subscription_template_id == models.SubscriptionTemplate.id
+            )
+        ).where(
+            models.LessonType.dance_style_id.in_(filters.dance_style_ids)
+        ).exists())
+
     return subscription_templates
 
 
-@router.get("/full-info", response_model=List[schemas.SubscriptionTemplateFullInfo])
-async def get_subscription_templates_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    subscription_templates = db.query(models.SubscriptionTemplate).offset(skip).limit(limit).all()
+@router.post("/search", response_model=List[schemas.SubscriptionTemplateInfo])
+async def search_subscription_templates(
+        filters: schemas.SubscriptionTemplateSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
+    subscription_templates = db.query(models.SubscriptionTemplate)
+    subscription_templates = apply_filters_to_subscription_templates(subscription_templates, filters, db)
+    subscription_templates = subscription_templates.offset(skip).limit(limit).all()
+    return subscription_templates
+
+
+@router.post("/search/full-info", response_model=List[schemas.SubscriptionTemplateFullInfo])
+async def search_subscription_templates_full_info(
+        filters: schemas.SubscriptionTemplateSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
+    subscription_templates = db.query(models.SubscriptionTemplate)
+    subscription_templates = apply_filters_to_subscription_templates(subscription_templates, filters, db)
+    subscription_templates = subscription_templates.offset(skip).limit(limit).all()
     return subscription_templates
 
 
@@ -74,7 +110,7 @@ async def get_subscription_template_full_info_by_id(
     return subscription_template
 
 
-@router.patch("/{subscription_template_id}", response_model=schemas.SubscriptionTemplateInfo,
+@router.patch("/{subscription_template_id}", response_model=schemas.SubscriptionTemplateFullInfo,
               status_code=status.HTTP_200_OK)
 async def patch_subscription_template(
         subscription_template_id: uuid.UUID,

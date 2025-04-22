@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from typing import List
 from app import schemas, models
 from app.database import get_db
@@ -31,15 +31,38 @@ async def create_lesson_type(
     return lesson_type
 
 
-@router.get("/", response_model=List[schemas.LessonTypeInfo])
-async def get_lesson_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    lesson_types = db.query(models.LessonType).offset(skip).limit(limit).all()
+def apply_filters_to_lesson_types(lesson_types: Query, filters):
+    if filters.dance_style_ids:
+        lesson_types = lesson_types.filter(models.LessonType.dance_style_id.in_(filters.dance_style_ids))
+    if type(filters.is_group) is bool:
+        lesson_types = lesson_types.filter(models.LessonType.is_group == filters.is_group)
+    if type(filters.terminated) is bool:
+        lesson_types = lesson_types.filter(models.LessonType.terminated == filters.terminated)
+
     return lesson_types
 
 
-@router.get("/full-info", response_model=List[schemas.LessonTypeFullInfo])
-async def get_lesson_types_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    lesson_types = db.query(models.LessonType).offset(skip).limit(limit).all()
+@router.post("/search", response_model=List[schemas.LessonTypeInfo])
+async def search_lesson_types(
+        filters: schemas.LessonTypeSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
+    lesson_types = db.query(models.LessonType)
+    lesson_types = apply_filters_to_lesson_types(lesson_types, filters)
+    lesson_types = lesson_types.offset(skip).limit(limit).all()
+    return lesson_types
+
+
+@router.post("/search/full-info", response_model=List[schemas.LessonTypeFullInfo])
+async def search_lesson_types_full_info(
+        filters: schemas.LessonTypeSearch,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
+    lesson_types = db.query(models.LessonType)
+    lesson_types = apply_filters_to_lesson_types(lesson_types, filters)
+    lesson_types = lesson_types.offset(skip).limit(limit).all()
     return lesson_types
 
 
@@ -65,7 +88,7 @@ async def get_lesson_type_full_info_by_id(lesson_type_id: uuid.UUID, db: Session
     return lesson_type
 
 
-@router.patch("/{lesson_type_id}", response_model=schemas.LessonTypeInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{lesson_type_id}", response_model=schemas.LessonTypeFullInfo, status_code=status.HTTP_200_OK)
 async def patch_lesson_type(
         lesson_type_id: uuid.UUID,
         lesson_type_data: schemas.LessonTypeUpdate,

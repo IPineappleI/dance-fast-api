@@ -15,13 +15,22 @@ class SubscriptionTemplate(BaseModel):
     price = Column(Numeric(8, 2), nullable=False)
 
     subscriptions = relationship("Subscription", back_populates="subscription_template")
-    lesson_types = relationship("SubscriptionLessonType", back_populates="subscription_template")
+    subscription_lesson_types = relationship("SubscriptionLessonType", back_populates="subscription_template")
+    lesson_types = relationship(
+        "LessonType",
+        primaryjoin="SubscriptionTemplate.id == SubscriptionLessonType.subscription_template_id",
+        secondary="subscription_lesson_types",
+        secondaryjoin="SubscriptionLessonType.lesson_type_id == LessonType.id",
+        viewonly=True,
+        overlaps="subscription_lesson_types",
+        back_populates="subscription_templates"
+    )
     lessons = relationship(
         "Lesson",
         primaryjoin="SubscriptionTemplate.id == SubscriptionLessonType.subscription_template_id",
         secondary="subscription_lesson_types",
         secondaryjoin="SubscriptionLessonType.lesson_type_id == Lesson.lesson_type_id",
         viewonly=True,
-        overlaps="lesson_types",
+        overlaps="subscription_lesson_types",
         back_populates="subscription_templates"
     )

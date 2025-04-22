@@ -47,6 +47,7 @@ async def search_available_classrooms(
     classrooms = db.query(models.Classroom).filter(~exists(models.Lesson).where(and_(
         models.Lesson.classroom_id == models.Classroom.id,
         models.Lesson.are_neighbours_allowed == False,
+        models.Lesson.terminated == False,
         or_(
             and_(filters.date_from >= models.Lesson.start_time, filters.date_from < models.Lesson.finish_time),
             and_(filters.date_to > models.Lesson.start_time, filters.date_to <= models.Lesson.finish_time),

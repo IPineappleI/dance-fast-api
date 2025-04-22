@@ -183,7 +183,7 @@ async def delete_slot_by_id(slot_id: uuid.UUID, response: Response, db: Session 
     return "Слот успешно удалён"
 
 
-@router.patch("/{slot_id}", response_model=schemas.SlotInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{slot_id}", response_model=schemas.SlotFullInfo, status_code=status.HTTP_200_OK)
 async def patch_slot(
         slot_id: uuid.UUID,
         slot_data: schemas.SlotUpdate,

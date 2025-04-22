@@ -425,7 +425,6 @@ async def search_lessons_admin(
     lessons = db.query(models.Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
     lessons = lessons.offset(skip).limit(limit).all()
-
     return lessons
 
 
@@ -439,7 +438,6 @@ async def search_lessons_admin_full_info(
     lessons = db.query(models.Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
     lessons = lessons.offset(skip).limit(limit).all()
-
     return lessons
 
 
@@ -513,7 +511,7 @@ async def get_lesson_full_info_by_id(lesson_id: uuid.UUID, db: Session = Depends
     return lessons
 
 
-@router.patch("/{lesson_id}", response_model=schemas.LessonInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{lesson_id}", response_model=schemas.LessonFullInfo, status_code=status.HTTP_200_OK)
 async def patch_lesson(
         lesson_id: uuid.UUID,
         lesson_data: schemas.LessonUpdate,

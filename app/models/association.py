@@ -52,8 +52,8 @@ class SubscriptionLessonType(Base):
     subscription_template_id = Column(UUID(as_uuid=True), ForeignKey("subscription_templates.id"), primary_key=True, nullable=False)
     lesson_type_id = Column(UUID(as_uuid=True), ForeignKey("lesson_types.id"), primary_key=True, nullable=False)
 
-    subscription_template = relationship("SubscriptionTemplate", back_populates="lesson_types")
-    lesson_type = relationship("LessonType", back_populates="subscription_templates")
+    subscription_template = relationship("SubscriptionTemplate", back_populates="subscription_lesson_types")
+    lesson_type = relationship("LessonType", back_populates="subscription_lesson_types")
 
 
 class TeacherLessonType(Base):

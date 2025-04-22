@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 import uuid
@@ -33,6 +33,15 @@ class LessonTypeFullInfo(LessonTypeInfo):
 
 class LessonTypeUpdate(BaseModel):
     dance_style_id: Optional[uuid.UUID] = None
+    is_group: Optional[bool] = None
+    terminated: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
+class LessonTypeSearch(BaseModel):
+    dance_style_ids: Optional[List[uuid.UUID]] = None
     is_group: Optional[bool] = None
     terminated: Optional[bool] = None
 

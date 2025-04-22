@@ -1,5 +1,3 @@
-from types import NoneType
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -118,7 +116,7 @@ async def get_subscription_full_info_by_id(subscription_id: uuid.UUID, db: Sessi
     return subscription
 
 
-@router.patch("/{subscription_id}", response_model=schemas.SubscriptionInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{subscription_id}", response_model=schemas.SubscriptionFullInfo, status_code=status.HTTP_200_OK)
 async def patch_subscription(
         subscription_id: uuid.UUID,
         subscription_data: schemas.SubscriptionUpdate,

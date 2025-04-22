@@ -73,7 +73,7 @@ async def get_admin_full_info_by_id(admin_id: uuid.UUID, db: Session = Depends(g
     return admin
 
 
-@router.patch("/{admin_id}", response_model=schemas.AdminInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{admin_id}", response_model=schemas.AdminFullInfo, status_code=status.HTTP_200_OK)
 async def patch_admin(
         admin_id: uuid.UUID,
         admin_data: schemas.AdminUpdate,

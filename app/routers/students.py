@@ -82,7 +82,7 @@ async def get_student_full_info_by_id(student_id: uuid.UUID, db: Session = Depen
     return student
 
 
-@router.patch("/{student_id}", response_model=schemas.StudentInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{student_id}", response_model=schemas.StudentFullInfo, status_code=status.HTTP_200_OK)
 async def patch_student(
         student_id: uuid.UUID,
         student_data: schemas.StudentUpdate,

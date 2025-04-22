@@ -83,7 +83,7 @@ async def get_event_full_info_by_id(event_id: uuid.UUID, db: Session = Depends(g
     return event
 
 
-@router.patch("/{event_id}", response_model=schemas.EventInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{event_id}", response_model=schemas.EventFullInfo, status_code=status.HTTP_200_OK)
 async def patch_event(
         event_id: uuid.UUID,
         event_data: schemas.EventUpdate,

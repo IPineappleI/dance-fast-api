@@ -81,7 +81,7 @@ async def get_group_full_info_by_id(group_id: uuid.UUID, db: Session = Depends(g
     return group
 
 
-@router.patch("/{group_id}", response_model=schemas.GroupInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{group_id}", response_model=schemas.GroupFullInfo, status_code=status.HTTP_200_OK)
 async def patch_group(
         group_id: uuid.UUID,
         group_data: schemas.GroupUpdate,

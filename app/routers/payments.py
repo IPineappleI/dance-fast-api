@@ -80,7 +80,7 @@ async def get_payment_full_info_by_id(payment_id: uuid.UUID, db: Session = Depen
     return payment
 
 
-@router.patch("/{payment_id}", response_model=schemas.PaymentInfo, status_code=status.HTTP_200_OK)
+@router.patch("/{payment_id}", response_model=schemas.PaymentFullInfo, status_code=status.HTTP_200_OK)
 async def patch_payment(
         payment_id: uuid.UUID,
         payment_data: schemas.PaymentUpdate,

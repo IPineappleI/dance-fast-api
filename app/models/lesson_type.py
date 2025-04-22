@@ -14,5 +14,14 @@ class LessonType(BaseModel):
 
     dance_style = relationship("DanceStyle", back_populates="lesson_types")
     lessons = relationship("Lesson", back_populates="lesson_type")
-    subscription_templates = relationship("SubscriptionLessonType", back_populates="lesson_type")
     teachers = relationship("TeacherLessonType", back_populates="lesson_type")
+    subscription_lesson_types = relationship("SubscriptionLessonType", back_populates="lesson_type")
+    subscription_templates = relationship(
+        "SubscriptionTemplate",
+        primaryjoin="LessonType.id == SubscriptionLessonType.lesson_type_id",
+        secondary="subscription_lesson_types",
+        secondaryjoin="SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id",
+        viewonly=True,
+        overlaps="subscription_lesson_types",
+        back_populates="lesson_types"
+    )

@@ -101,7 +101,7 @@ async def get_current_user_full_info(
         joinedload(Student.level),
         joinedload(Student.groups).joinedload(StudentGroup.group).joinedload(Group.level),
         joinedload(Student.subscriptions).joinedload(Subscription.subscription_template)
-        .joinedload(SubscriptionTemplate.lesson_types),
+        .joinedload(SubscriptionTemplate.subscription_lesson_types),
         joinedload(Student.subscriptions).joinedload(Subscription.payment).joinedload(Payment.payment_type)
     ).filter(Student.user_id == current_user.id).first()
     if student:
