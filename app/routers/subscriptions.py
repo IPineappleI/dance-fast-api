@@ -153,7 +153,7 @@ async def create_lesson_subscription(
         lesson_id: uuid.UUID,
         db: Session = Depends(get_db)
 ):
-    subscription = db.query(models.Subscription).options().filter(models.Subscription.id == subscription_id).first()
+    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
     if not subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

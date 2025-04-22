@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 
 from app.database import engine, Base, init_db
 from app.routers import users, auth, events, eventTypes, classrooms, subscriptionTemplates, paymentTypes, payments, \
-    subscriptions, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test, danceStyles
+    subscriptions, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test, danceStyles, \
+    statistics
 import os
 
 
@@ -58,6 +59,7 @@ app.include_router(levels.router)
 app.include_router(payments.router)
 app.include_router(paymentTypes.router)
 app.include_router(slots.router)
+app.include_router(statistics.router)
 app.include_router(students.router)
 app.include_router(subscriptions.router)
 app.include_router(subscriptionTemplates.router)

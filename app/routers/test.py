@@ -580,11 +580,19 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     subscription_template_indiv = models.SubscriptionTemplate(
+        name="Индивидуальное занятие",
+        lesson_count=1,
+        price=3500
+    )
+    db.add(subscription_template_indiv)
+    db.commit()
+
+    subscription_template_indiv4 = models.SubscriptionTemplate(
         name="4 индивидуальных занятия",
         lesson_count=4,
         price=12000
     )
-    db.add(subscription_template_indiv)
+    db.add(subscription_template_indiv4)
     db.commit()
 
     subscription_lesson_type = models.SubscriptionLessonType(
@@ -643,6 +651,20 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.add(subscription_lesson_type)
     db.commit()
 
+    subscription_lesson_type = models.SubscriptionLessonType(
+        subscription_template_id=subscription_template_indiv4.id,
+        lesson_type_id=lesson_type_tango_pair.id
+    )
+    db.add(subscription_lesson_type)
+    db.commit()
+
+    subscription_lesson_type = models.SubscriptionLessonType(
+        subscription_template_id=subscription_template_indiv4.id,
+        lesson_type_id=lesson_type_hiphop_indiv.id
+    )
+    db.add(subscription_lesson_type)
+    db.commit()
+
     payment_type_card = models.PaymentType(
         name="Картой"
     )
@@ -655,9 +677,25 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.add(payment_type_cash)
     db.commit()
 
+    payment0 = models.Payment(
+        payment_type_id=payment_type_cash.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=14)
+    )
+    db.add(payment0)
+    db.commit()
+
+    subscription0 = models.Subscription(
+        student_id=student_beginner1.id,
+        subscription_template_id=subscription_template_group1.id,
+        payment_id=payment0.id
+    )
+    db.add(subscription0)
+    db.commit()
+
     payment1 = models.Payment(
         payment_type_id=payment_type_card.id,
-        details="Оплата прошла успешно"
+        details="Оплата прошла успешно",
+        created_at=datetime.now(timezone.utc) - timedelta(days=1)
     )
     db.add(payment1)
     db.commit()
@@ -672,7 +710,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment2 = models.Payment(
-        payment_type_id=payment_type_card.id
+        payment_type_id=payment_type_card.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=8)
     )
     db.add(payment2)
     db.commit()
@@ -686,7 +725,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment3 = models.Payment(
-        payment_type_id=payment_type_cash.id
+        payment_type_id=payment_type_cash.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=7)
     )
     db.add(payment3)
     db.commit()
@@ -700,7 +740,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment4 = models.Payment(
-        payment_type_id=payment_type_card.id
+        payment_type_id=payment_type_card.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=5)
     )
     db.add(payment4)
     db.commit()
@@ -714,7 +755,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment5 = models.Payment(
-        payment_type_id=payment_type_card.id
+        payment_type_id=payment_type_card.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=5)
     )
     db.add(payment5)
     db.commit()
@@ -728,7 +770,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment6 = models.Payment(
-        payment_type_id=payment_type_cash.id
+        payment_type_id=payment_type_cash.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=4)
     )
     db.add(payment6)
     db.commit()
@@ -742,7 +785,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment7 = models.Payment(
-        payment_type_id=payment_type_card.id
+        payment_type_id=payment_type_card.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=2)
     )
     db.add(payment7)
     db.commit()
@@ -756,7 +800,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     payment8 = models.Payment(
-        payment_type_id=payment_type_cash.id
+        payment_type_id=payment_type_cash.id,
+        created_at=datetime.now(timezone.utc) - timedelta(days=2)
     )
     db.add(payment8)
     db.commit()
@@ -805,7 +850,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     subscription11 = models.Subscription(
         student_id=student_advanced1.id,
-        subscription_template_id=subscription_template_indiv.id,
+        subscription_template_id=subscription_template_indiv4.id,
         payment_id=payment11.id
     )
     db.add(subscription11)
@@ -819,10 +864,31 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     subscription12 = models.Subscription(
         student_id=student_advanced3.id,
-        subscription_template_id=subscription_template_indiv.id,
+        subscription_template_id=subscription_template_indiv4.id,
         payment_id=payment12.id
     )
     db.add(subscription12)
+    db.commit()
+
+    subscription13 = models.Subscription(
+        student_id=student_advanced2.id,
+        subscription_template_id=subscription_template_indiv.id
+    )
+    db.add(subscription13)
+    db.commit()
+
+    subscription14 = models.Subscription(
+        student_id=student_advanced2.id,
+        subscription_template_id=subscription_template_indiv.id
+    )
+    db.add(subscription14)
+    db.commit()
+
+    subscription15 = models.Subscription(
+        student_id=student_advanced3.id,
+        subscription_template_id=subscription_template_indiv.id
+    )
+    db.add(subscription15)
     db.commit()
 
     classroom1 = models.Classroom(
@@ -1202,6 +1268,81 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson_subscription = models.LessonSubscription(
         subscription_id=subscription12.id,
         lesson_id=lesson7.id
+    )
+    db.add(lesson_subscription)
+    db.commit()
+
+    lesson8 = models.Lesson(
+        name="Заявка на индивидуальное занятие по танго",
+        lesson_type_id=lesson_type_tango_pair.id,
+        start_time=datetime.now(timezone.utc) + timedelta(days=11),
+        finish_time=datetime.now(timezone.utc) + timedelta(days=11) + timedelta(minutes=60),
+        are_neighbours_allowed=True,
+        is_confirmed=False
+    )
+    db.add(lesson8)
+    db.commit()
+
+    teacher_lesson = models.TeacherLesson(
+        teacher_id=teacher1.id,
+        lesson_id=lesson8.id
+    )
+    db.add(teacher_lesson)
+    db.commit()
+
+    lesson_subscription = models.LessonSubscription(
+        subscription_id=subscription13.id,
+        lesson_id=lesson8.id
+    )
+    db.add(lesson_subscription)
+    db.commit()
+
+    lesson9 = models.Lesson(
+        name="Заявка на индивидуальное занятие по хип-хопу",
+        lesson_type_id=lesson_type_hiphop_indiv.id,
+        start_time=datetime.now(timezone.utc) + timedelta(days=3) + timedelta(minutes=9),
+        finish_time=datetime.now(timezone.utc) + timedelta(days=3) + timedelta(minutes=69),
+        are_neighbours_allowed=True,
+        is_confirmed=False
+    )
+    db.add(lesson9)
+    db.commit()
+
+    teacher_lesson = models.TeacherLesson(
+        teacher_id=teacher2.id,
+        lesson_id=lesson9.id
+    )
+    db.add(teacher_lesson)
+    db.commit()
+
+    lesson_subscription = models.LessonSubscription(
+        subscription_id=subscription14.id,
+        lesson_id=lesson9.id
+    )
+    db.add(lesson_subscription)
+    db.commit()
+
+    lesson10 = models.Lesson(
+        name="Заявка на индивидуальное занятие по хип-хопу",
+        lesson_type_id=lesson_type_hiphop_indiv.id,
+        start_time=datetime.now(timezone.utc) + timedelta(days=13),
+        finish_time=datetime.now(timezone.utc) + timedelta(days=13) + timedelta(minutes=50),
+        are_neighbours_allowed=False,
+        is_confirmed=False
+    )
+    db.add(lesson10)
+    db.commit()
+
+    teacher_lesson = models.TeacherLesson(
+        teacher_id=teacher2.id,
+        lesson_id=lesson10.id
+    )
+    db.add(teacher_lesson)
+    db.commit()
+
+    lesson_subscription = models.LessonSubscription(
+        subscription_id=subscription15.id,
+        lesson_id=lesson10.id
     )
     db.add(lesson_subscription)
     db.commit()

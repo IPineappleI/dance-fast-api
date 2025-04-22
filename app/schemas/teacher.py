@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 from pydantic import BaseModel
 
-from app.schemas.association import GroupForLists, LessonTypeForLists
+from app.schemas.association import AssociationGroup, AssociationLessonType
 from app.schemas.user import UserBase, UserUpdate
 
 
@@ -24,14 +24,14 @@ class TeacherInfo(TeacherBase):
 
 class TeacherMoreInfo(TeacherInfo):
     user: UserBase
-    lesson_types: List[LessonTypeForLists]
+    lesson_types: List[AssociationLessonType]
 
     class Config:
         from_attributes = True
 
 
 class TeacherFullInfo(TeacherMoreInfo):
-    groups: List[GroupForLists]
+    groups: List[AssociationGroup]
 
     class Config:
         from_attributes = True

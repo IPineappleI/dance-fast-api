@@ -14,3 +14,12 @@ class Payment(BaseModel):
 
     payment_type = relationship("PaymentType", back_populates="payments")
     subscription = relationship("Subscription", back_populates="payment")
+    subscription_template = relationship(
+        "SubscriptionTemplate",
+        primaryjoin="Payment.id == Subscription.payment_id",
+        secondary="subscriptions",
+        secondaryjoin="Subscription.subscription_template_id == SubscriptionTemplate.id",
+        viewonly=True,
+        overlaps="subscription",
+        lazy="joined"
+    )

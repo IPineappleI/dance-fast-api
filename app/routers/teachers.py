@@ -98,7 +98,7 @@ async def patch_teacher(
 @router.post("/lesson-types/{teacher_id}/{lesson_type_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_teacher_lesson_type(teacher_id: uuid.UUID, lesson_type_id: uuid.UUID, db: Session = Depends(get_db)):
-    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -142,7 +142,7 @@ async def delete_teacher_lesson_type(
         response: Response,
         db: Session = Depends(get_db)
 ):
-    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -174,7 +174,7 @@ async def delete_teacher_lesson_type(
 @router.post("/groups/{teacher_id}/{group_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_teacher_group(teacher_id: uuid.UUID, group_id: uuid.UUID, db: Session = Depends(get_db)):
-    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -218,7 +218,7 @@ async def delete_teacher_group(
         response: Response,
         db: Session = Depends(get_db)
 ):
-    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -250,7 +250,7 @@ async def delete_teacher_group(
 @router.post("/lessons/{teacher_id}/{lesson_id}", response_model=schemas.LessonFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_teacher_lesson(teacher_id: uuid.UUID, lesson_id: uuid.UUID, db: Session = Depends(get_db)):
-    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -294,7 +294,7 @@ async def delete_teacher_lesson(
         response: Response,
         db: Session = Depends(get_db)
 ):
-    teacher = db.query(models.Teacher).options().filter(models.Teacher.id == teacher_id).first()
+    teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

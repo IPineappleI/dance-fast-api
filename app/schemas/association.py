@@ -1,28 +1,28 @@
 from pydantic import BaseModel
 
 
-class StudentForLists(BaseModel):
+class AssociationStudent(BaseModel):
     student: "StudentMoreInfo"
 
     class Config:
         from_attributes = True
 
 
-class TeacherForLists(BaseModel):
+class AssociationTeacher(BaseModel):
     teacher: "TeacherMoreInfo"
 
     class Config:
         from_attributes = True
 
 
-class GroupForLists(BaseModel):
+class AssociationGroup(BaseModel):
     group: "GroupMoreInfo"
 
     class Config:
         from_attributes = True
 
 
-class LessonTypeForLists(BaseModel):
+class AssociationLessonType(BaseModel):
     lesson_type: "LessonTypeFullInfo"
 
     class Config:
@@ -34,7 +34,7 @@ from app.schemas.teacher import TeacherMoreInfo
 from app.schemas.group import GroupMoreInfo
 from app.schemas.lessonType import LessonTypeFullInfo
 
-StudentForLists.model_rebuild()
-TeacherForLists.model_rebuild()
-GroupForLists.model_rebuild()
-LessonTypeForLists.model_rebuild()
+AssociationStudent.model_rebuild()
+AssociationTeacher.model_rebuild()
+AssociationGroup.model_rebuild()
+AssociationLessonType.model_rebuild()

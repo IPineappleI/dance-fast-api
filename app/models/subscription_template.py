@@ -22,4 +22,6 @@ class SubscriptionTemplate(BaseModel):
         secondary="subscription_lesson_types",
         secondaryjoin="SubscriptionLessonType.lesson_type_id == Lesson.lesson_type_id",
         viewonly=True,
-        back_populates="subscription_templates")
+        overlaps="lesson_types",
+        back_populates="subscription_templates"
+    )

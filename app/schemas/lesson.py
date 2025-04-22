@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from app.schemas.student import StudentMoreInfo
-from app.schemas.association import TeacherForLists
+from app.schemas.association import AssociationTeacher
 from app.schemas.subscriptionTemplate import SubscriptionTemplateFullInfo
 from app.schemas.group import GroupMoreInfo
 from app.schemas.lessonType import LessonTypeFullInfo
@@ -90,7 +90,7 @@ class LessonFullInfo(LessonInfo):
     subscription_templates: List[SubscriptionTemplateFullInfo]
     group: Optional[GroupMoreInfo] = None
     actual_students: List[StudentMoreInfo]
-    actual_teachers: List[TeacherForLists]
+    actual_teachers: List[AssociationTeacher]
 
     class Config:
         from_attributes = True

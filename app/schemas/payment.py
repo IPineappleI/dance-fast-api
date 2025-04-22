@@ -2,8 +2,10 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
-from app.schemas.paymentType import PaymentTypeInfo
+
 import uuid
+
+from app.schemas.paymentType import PaymentTypeInfo
 
 
 class PaymentBase(BaseModel):
@@ -25,6 +27,7 @@ class PaymentInfo(PaymentBase):
 
 class PaymentFullInfo(PaymentInfo):
     payment_type: PaymentTypeInfo
+    # subscription: AssociationSubscription
 
     class Config:
         from_attributes = True

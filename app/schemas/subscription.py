@@ -26,8 +26,14 @@ class SubscriptionInfo(SubscriptionBase):
         from_attributes = True
 
 
-class SubscriptionFullInfo(SubscriptionInfo):
+class SubscriptionWithTemplate(SubscriptionInfo):
     subscription_template: SubscriptionTemplateFullInfo
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionFullInfo(SubscriptionWithTemplate):
     payment: Optional[PaymentFullInfo] = None
 
     class Config:

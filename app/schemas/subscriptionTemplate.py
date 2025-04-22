@@ -2,9 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 import uuid
-import decimal
 
-from app.schemas.association import LessonTypeForLists
+from app.schemas.association import AssociationLessonType
 
 
 class SubscriptionTemplateBase(BaseModel):
@@ -13,7 +12,7 @@ class SubscriptionTemplateBase(BaseModel):
     lesson_count: int
     expiration_date: Optional[datetime] = None
     expiration_day_count: Optional[int] = None
-    price: decimal.Decimal
+    price: float
 
     class Config:
         from_attributes = True
@@ -28,7 +27,7 @@ class SubscriptionTemplateInfo(SubscriptionTemplateBase):
 
 
 class SubscriptionTemplateFullInfo(SubscriptionTemplateInfo):
-    lesson_types: List[LessonTypeForLists]
+    lesson_types: List[AssociationLessonType]
 
     class Config:
         from_attributes = True
@@ -40,7 +39,7 @@ class SubscriptionTemplateUpdate(BaseModel):
     lesson_count: Optional[int] = None
     expiration_date: Optional[datetime] = None
     expiration_day_count: Optional[int] = None
-    price: Optional[decimal.Decimal] = None
+    price: Optional[float] = None
 
     class Config:
         from_attributes = True

@@ -119,7 +119,7 @@ async def patch_student(
 @router.post("/groups/{student_id}/{group_id}", response_model=schemas.StudentFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_student_group(student_id: uuid.UUID, group_id: uuid.UUID, db: Session = Depends(get_db)):
-    student = db.query(models.Student).options().filter(models.Student.id == student_id).first()
+    student = db.query(models.Student).filter(models.Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -169,7 +169,7 @@ async def delete_student_group(
         response: Response,
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).options().filter(models.Student.id == student_id).first()
+    student = db.query(models.Student).filter(models.Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
