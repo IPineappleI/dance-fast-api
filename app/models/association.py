@@ -42,8 +42,8 @@ class LessonSubscription(Base):
     lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), primary_key=True, nullable=False)
     cancelled = Column(Boolean, nullable=False, default=False)
 
-    subscription = relationship("Subscription", back_populates="lessons")
-    lesson = relationship("Lesson", back_populates="subscriptions")
+    subscription = relationship("Subscription", back_populates="lesson_subscriptions")
+    lesson = relationship("Lesson", back_populates="lesson_subscriptions")
 
 
 class SubscriptionLessonType(Base):

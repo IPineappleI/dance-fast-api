@@ -27,7 +27,7 @@ class UserUpdate(BaseModel):
     middle_name: Optional[str] = None
     description: Optional[str] = None
     phone_number: Optional[str] = None
-    terminated: Optional[bool] = False
+    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True

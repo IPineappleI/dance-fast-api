@@ -1,7 +1,12 @@
+from types import NoneType
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone, timedelta
+
+from app.auth.jwt import get_current_student
 from app.database import get_db
 from app import models, schemas
 
@@ -76,6 +81,21 @@ async def get_subscriptions_full_info(skip: int = 0, limit: int = 100, db: Sessi
     return subscriptions
 
 
+@router.get("/full-info/{student_id}", response_model=List[schemas.SubscriptionFullInfo])
+async def get_subscriptions_full_info_by_student_id(
+        student_id: uuid.UUID,
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
+    now = datetime.now(timezone.utc)
+    subscriptions = db.query(models.Subscription).filter(and_(
+        models.Subscription.student_id == student_id,
+        or_(models.Subscription.expiration_date == None, models.Subscription.expiration_date > now),
+        models.Subscription.lessons_left > 0
+    )).offset(skip).limit(limit).all()
+    return subscriptions
+
+
 @router.get("/{subscription_id}", response_model=schemas.SubscriptionInfo)
 async def get_subscription_by_id(subscription_id: uuid.UUID, db: Session = Depends(get_db)):
     db_subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
@@ -95,15 +115,6 @@ async def get_subscription_full_info_by_id(subscription_id: uuid.UUID, db: Sessi
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Абонемент не найден"
         )
-
-    subscription_template = db.query(models.SubscriptionTemplate).filter(
-        models.SubscriptionTemplate.id == subscription.subscription_template_id).first()
-    if subscription_template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Шаблон абонемента не найден"
-        )
-
     return subscription
 
 
@@ -119,14 +130,6 @@ async def patch_subscription(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Абонемент не найден"
         )
-
-    if subscription_data.student_id:
-        student = db.query(models.Student).filter(models.Student.id == subscription_data.student_id).first()
-        if not student:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Студент не найден"
-            )
 
     if subscription_data.subscription_template_id:
         subscription_template = db.query(models.SubscriptionTemplate).filter(
@@ -188,3 +191,49 @@ async def create_lesson_subscription(
     db.refresh(lesson)
 
     return lesson
+
+
+@router.patch("/lessons/cancel/{subscription_id}/{lesson_id}",
+              response_model=schemas.SubscriptionFullInfo,
+              status_code=status.HTTP_200_OK)
+async def cancel_subscription_use(
+        subscription_id: uuid.UUID,
+        lesson_id: uuid.UUID,
+        current_student: models.Student = Depends(get_current_student),
+        db: Session = Depends(get_db)
+):
+    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    if not subscription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Абонемент не найден"
+        )
+    if subscription.student_id != current_student.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Абонемент оформлен другим учеником"
+        )
+
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Занятие не найдено"
+        )
+
+    lesson_subscription = db.query(models.LessonSubscription).filter(and_(
+        models.LessonSubscription.subscription_id == subscription.id,
+        models.LessonSubscription.lesson_id == lesson.id,
+    )).first()
+    if not lesson_subscription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Абонемент не связан с данным занятием"
+        )
+
+    lesson_subscription.cancelled = True
+
+    db.commit()
+    db.refresh(subscription)
+
+    return subscription

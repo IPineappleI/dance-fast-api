@@ -3,7 +3,7 @@ from datetime import timezone, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_
-from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm import Session, Query, joinedload
 from typing import List
 
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student
@@ -249,7 +249,7 @@ async def create_group_lesson(
 @router.post("/request", response_model=schemas.LessonFullInfo, status_code=status.HTTP_201_CREATED)
 async def create_lesson_request(
         lesson_data: schemas.LessonRequest,
-        current_student: models.Teacher = Depends(get_current_student),
+        current_student: models.Student = Depends(get_current_student),
         db: Session = Depends(get_db)
 ):
     if lesson_data.start_time >= lesson_data.finish_time:
@@ -373,6 +373,16 @@ def apply_filters_to_lessons(lessons: Query, filters):
     if filters.group_ids:
         lessons = lessons.filter(models.Lesson.group_id.in_(filters.group_ids))
 
+    if filters.level_ids:
+        lessons = lessons.join(
+            models.Group, models.Group.id == models.Lesson.group_id
+        ).filter(models.Group.level_id.in_(filters.level_ids))
+
+    if filters.dance_style_ids:
+        lessons = lessons.join(models.LessonType, models.LessonType.id == models.Lesson.lesson_type_id).filter(
+            models.LessonType.dance_style_id.in_(filters.dance_style_ids)
+        )
+
     if filters.subscription_template_ids:
         lessons = lessons.join(
             models.SubscriptionLessonType,
@@ -403,10 +413,11 @@ def apply_filters_to_lessons(lessons: Query, filters):
     return lessons
 
 
-@router.post("/search", response_model=List[schemas.LessonInfo])
-async def search_lessons(
+@router.post("/search/admin", response_model=List[schemas.LessonInfo])
+async def search_lessons_admin(
         filters: schemas.LessonSearch,
         skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     lessons = db.query(models.Lesson)
@@ -416,12 +427,61 @@ async def search_lessons(
     return lessons
 
 
-@router.post("/search/full-info", response_model=List[schemas.LessonFullInfo])
-async def search_lessons_full_info(
+@router.post("/search/admin/full-info", response_model=List[schemas.LessonFullInfo])
+async def search_lessons_admin_full_info(
+        filters: schemas.LessonSearch,
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
+    lessons = db.query(models.Lesson)
+    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = lessons.offset(skip).limit(limit).all()
+
+    return lessons
+
+
+@router.post("/search/teacher/full-info", response_model=List[schemas.LessonFullInfo])
+async def search_lessons_teacher_full_info(
+        filters: schemas.LessonSearch,
+        skip: int = 0, limit: int = 100,
+        current_teacher: models.Teacher = Depends(get_current_teacher),
+        db: Session = Depends(get_db)
+):
+    filters.teacher_ids = [current_teacher.id]
+
+    lessons = db.query(models.Lesson)
+    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = lessons.offset(skip).limit(limit).all()
+
+    return lessons
+
+
+@router.post("/search/student/full-info", response_model=List[schemas.LessonWithSubscription])
+async def search_lessons_student_full_info(
+        filters: schemas.LessonSearch,
+        skip: int = 0, limit: int = 100,
+        current_student: models.Student = Depends(get_current_student),
+        db: Session = Depends(get_db)
+):
+    filters.student_ids = [current_student.id]
+
+    lessons = db.query(models.Lesson)
+    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = lessons.offset(skip).limit(limit).all()
+
+    return lessons
+
+
+@router.post("/search/group/full-info", response_model=List[schemas.LessonFullInfo])
+async def search_group_lessons_full_info(
         filters: schemas.LessonSearch,
         skip: int = 0, limit: int = 100,
         db: Session = Depends(get_db)
 ):
+    filters.is_group = True
+    filters.student_ids = []
+
     lessons = db.query(models.Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
     lessons = lessons.offset(skip).limit(limit).all()

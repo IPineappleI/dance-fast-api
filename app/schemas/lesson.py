@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from app.schemas.subscription import SubscriptionFullInfo
 from app.schemas.student import StudentMoreInfo
 from app.schemas.association import AssociationTeacher
 from app.schemas.subscriptionTemplate import SubscriptionTemplateFullInfo
@@ -96,6 +97,33 @@ class LessonFullInfo(LessonInfo):
         from_attributes = True
 
 
+class LessonSearch(BaseModel):
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    is_confirmed: Optional[bool] = None
+    are_neighbours_allowed: Optional[bool] = None
+    is_group: Optional[bool] = None
+
+    teacher_ids: Optional[List[uuid.UUID]] = None
+    student_ids: Optional[List[uuid.UUID]] = None
+    classroom_ids: Optional[List[uuid.UUID]] = None
+    dance_style_ids: Optional[List[uuid.UUID]] = None
+    lesson_type_ids: Optional[List[uuid.UUID]] = None
+    subscription_template_ids: Optional[List[uuid.UUID]] = None
+    level_ids: Optional[List[uuid.UUID]] = None
+    group_ids: Optional[List[uuid.UUID]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class LessonWithSubscription(LessonFullInfo):
+    subscriptions: List[SubscriptionFullInfo]
+
+    class Config:
+        from_attributes = True
+
+
 class LessonUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -107,24 +135,6 @@ class LessonUpdate(BaseModel):
     is_confirmed: Optional[bool] = None
     are_neighbours_allowed: Optional[bool] = None
     terminated: Optional[bool] = None
-
-    class Config:
-        from_attributes = True
-
-
-class LessonSearch(BaseModel):
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
-    is_confirmed: Optional[bool] = None
-    are_neighbours_allowed: Optional[bool] = None
-    is_group: Optional[bool] = None
-
-    lesson_type_ids: Optional[List[uuid.UUID]] = None
-    classroom_ids: Optional[List[uuid.UUID]] = None
-    subscription_template_ids: Optional[List[uuid.UUID]] = None
-    group_ids: Optional[List[uuid.UUID]] = None
-    student_ids: Optional[List[uuid.UUID]] = None
-    teacher_ids: Optional[List[uuid.UUID]] = None
 
     class Config:
         from_attributes = True
