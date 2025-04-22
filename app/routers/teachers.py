@@ -116,7 +116,6 @@ async def create_teacher_lesson_type(teacher_id: uuid.UUID, lesson_type_id: uuid
         models.TeacherLessonType.teacher_id == teacher_id,
         models.TeacherLessonType.lesson_type_id == lesson_type_id
     ).first()
-
     if existing_lesson_type:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -127,8 +126,8 @@ async def create_teacher_lesson_type(teacher_id: uuid.UUID, lesson_type_id: uuid
         teacher_id=teacher_id,
         lesson_type_id=lesson_type_id
     )
-
     db.add(teacher_lesson_type)
+
     db.commit()
     db.refresh(teacher)
 
@@ -160,7 +159,6 @@ async def delete_teacher_lesson_type(
         models.TeacherLessonType.teacher_id == teacher_id,
         models.TeacherLessonType.lesson_type_id == lesson_type_id
     ).first()
-
     if not existing_lesson_type:
         response.status_code=status.HTTP_204_NO_CONTENT
         return "Преподаватель не связан с этим типом занятия"
@@ -192,7 +190,6 @@ async def create_teacher_group(teacher_id: uuid.UUID, group_id: uuid.UUID, db: S
         models.TeacherGroup.teacher_id == teacher_id,
         models.TeacherGroup.group_id == group_id
     ).first()
-
     if existing_group:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -203,8 +200,8 @@ async def create_teacher_group(teacher_id: uuid.UUID, group_id: uuid.UUID, db: S
         teacher_id=teacher_id,
         group_id=group_id
     )
-
     db.add(teacher_group)
+
     db.commit()
     db.refresh(teacher)
 
@@ -236,7 +233,6 @@ async def delete_teacher_group(
         models.TeacherGroup.teacher_id == teacher_id,
         models.TeacherGroup.group_id == group_id
     ).first()
-
     if not existing_group:
         response.status_code = status.HTTP_204_NO_CONTENT
         return "Преподаватель не связан с этой группой"
@@ -268,7 +264,6 @@ async def create_teacher_lesson(teacher_id: uuid.UUID, lesson_id: uuid.UUID, db:
         models.TeacherLesson.teacher_id == teacher_id,
         models.TeacherLesson.lesson_id == lesson_id
     ).first()
-
     if existing_lesson:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -279,8 +274,8 @@ async def create_teacher_lesson(teacher_id: uuid.UUID, lesson_id: uuid.UUID, db:
         teacher_id=teacher_id,
         lesson_id=lesson_id
     )
-
     db.add(teacher_lesson)
+
     db.commit()
     db.refresh(lesson)
 
@@ -312,7 +307,6 @@ async def delete_teacher_lesson(
         models.TeacherLesson.teacher_id == teacher_id,
         models.TeacherLesson.lesson_id == lesson_id
     ).first()
-
     if not existing_lesson:
         response.status_code = status.HTTP_204_NO_CONTENT
         return "Преподаватель не связан с этим занятием"

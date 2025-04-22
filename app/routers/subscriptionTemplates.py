@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import exists, and_
 from sqlalchemy.orm import Session, Query
 from typing import List
@@ -143,8 +143,8 @@ async def create_subscription_lesson_type(
         db: Session = Depends(get_db)
 ):
     subscription_template = db.query(models.SubscriptionTemplate).filter(
-        models.SubscriptionTemplate.id == subscription_template_id).first()
-
+        models.SubscriptionTemplate.id == subscription_template_id
+    ).first()
     if not subscription_template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -162,7 +162,6 @@ async def create_subscription_lesson_type(
         models.SubscriptionLessonType.subscription_template_id == subscription_template_id,
         models.SubscriptionLessonType.lesson_type_id == lesson_type_id
     ).first()
-
     if existing_lesson_type:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -179,3 +178,40 @@ async def create_subscription_lesson_type(
     db.refresh(subscription_template)
 
     return subscription_template
+
+
+@router.delete("/lesson-types/{subscription_template_id}/{lesson_type_id}")
+async def delete_subscription_lesson_type(
+        subscription_template_id: uuid.UUID,
+        lesson_type_id: uuid.UUID,
+        response: Response,
+        db: Session = Depends(get_db)
+):
+    subscription_template = db.query(models.SubscriptionTemplate).filter(
+        models.SubscriptionTemplate.id == subscription_template_id
+    ).first()
+    if not subscription_template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Шаблон абонемента не найден"
+        )
+
+    lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
+    if not lesson_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Тип занятия не найден"
+        )
+
+    existing_lesson_type = db.query(models.SubscriptionLessonType).filter(
+        models.SubscriptionLessonType.subscription_template_id == subscription_template.id,
+        models.SubscriptionLessonType.lesson_type_id == lesson_type.id
+    ).first()
+    if not existing_lesson_type:
+        response.status_code=status.HTTP_204_NO_CONTENT
+        return "Шаблон абонемента не связан с этим типом занятия"
+
+    db.delete(existing_lesson_type)
+    db.commit()
+
+    return "Тип занятия из шаблона абонемента удалён успешно"
