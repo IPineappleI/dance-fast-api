@@ -2,7 +2,6 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.schemas.association import AssociationStudent, AssociationTeacher
 from app.schemas.level import LevelInfo
 import uuid
 from typing import Optional, List
@@ -35,8 +34,8 @@ class GroupMoreInfo(GroupInfo):
 
 
 class GroupFullInfo(GroupMoreInfo):
-    students: List[AssociationStudent]
-    teachers: List[AssociationTeacher]
+    students: List["StudentMoreInfo"]
+    teachers: List["TeacherMoreInfo"]
 
     class Config:
         from_attributes = True
@@ -51,3 +50,9 @@ class GroupUpdate(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+from app.schemas.student import StudentMoreInfo
+from app.schemas.teacher import TeacherMoreInfo
+
+GroupFullInfo.model_rebuild()

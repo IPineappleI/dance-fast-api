@@ -13,4 +13,4 @@ class Slot(BaseModel):
     start_time = Column(Time(timezone=True), nullable=False)
     end_time = Column(Time(timezone=True), nullable=False)
 
-    teacher = relationship("Teacher", back_populates="slots")
+    teacher = relationship("Teacher", uselist=False, back_populates="slots")

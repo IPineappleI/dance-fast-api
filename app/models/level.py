@@ -11,5 +11,5 @@ class Level(BaseModel):
     description = Column(String, nullable=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    students = relationship("Student", back_populates="level")
-    groups = relationship("Group", back_populates="level")
+    groups = relationship("Group", uselist=True, back_populates="level")
+    students = relationship("Student", uselist=True, back_populates="level")

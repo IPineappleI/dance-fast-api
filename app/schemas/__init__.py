@@ -1,5 +1,4 @@
 from app.schemas.admin import *
-from app.schemas.association import *
 from app.schemas.classroom import *
 from app.schemas.danceStyle import *
 from app.schemas.event import *

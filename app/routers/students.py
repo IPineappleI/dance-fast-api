@@ -133,7 +133,7 @@ async def create_student_group(student_id: uuid.UUID, group_id: uuid.UUID, db: S
             detail="Группа не найдена"
         )
 
-    if len(group.students) >= group.max_capacity:
+    if len(group.student_groups) >= group.max_capacity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="В группе нет свободных мест"

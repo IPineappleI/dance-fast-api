@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 import uuid
 
+from app.schemas.subscription import SubscriptionMoreInfo
 from app.schemas.paymentType import PaymentTypeInfo
 
 
@@ -27,7 +28,7 @@ class PaymentInfo(PaymentBase):
 
 class PaymentFullInfo(PaymentInfo):
     payment_type: PaymentTypeInfo
-    # subscription: AssociationSubscription
+    subscription: SubscriptionMoreInfo
 
     class Config:
         from_attributes = True

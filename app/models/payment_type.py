@@ -10,4 +10,4 @@ class PaymentType(BaseModel):
     name = Column(String, nullable=False, unique=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    payments = relationship("Payment", back_populates="payment_type")
+    payments = relationship("Payment", uselist=True, back_populates="payment_type")

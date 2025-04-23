@@ -99,7 +99,7 @@ async def get_current_user_full_info(
     student = db.query(Student).options(
         joinedload(Student.user),
         joinedload(Student.level),
-        joinedload(Student.groups).joinedload(StudentGroup.group).joinedload(Group.level),
+        joinedload(Student.student_groups).joinedload(StudentGroup.group).joinedload(Group.level),
         joinedload(Student.subscriptions).joinedload(Subscription.subscription_template)
         .joinedload(SubscriptionTemplate.subscription_lesson_types),
         joinedload(Student.subscriptions).joinedload(Subscription.payment).joinedload(Payment.payment_type)
@@ -110,8 +110,8 @@ async def get_current_user_full_info(
 
     teacher = db.query(Teacher).options(
         joinedload(Teacher.user),
-        joinedload(Teacher.groups).joinedload(TeacherGroup.group).joinedload(Group.level),
-        joinedload(Teacher.lesson_types).joinedload(TeacherLessonType.lesson_type)
+        joinedload(Teacher.teacher_groups).joinedload(TeacherGroup.group).joinedload(Group.level),
+        joinedload(Teacher.teacher_lesson_types).joinedload(TeacherLessonType.lesson_type)
     ).filter(Teacher.user_id == current_user.id).first()
     if teacher:
         teacher.role = "teacher"

@@ -3,7 +3,7 @@ from datetime import timezone, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_
-from sqlalchemy.orm import Session, Query, joinedload
+from sqlalchemy.orm import Session, Query
 from typing import List
 
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student
@@ -89,9 +89,12 @@ def create_subscription(student_id, lesson_type_id, db: Session):
         subscription_template_id=subscription_template.id
     )
     if subscription_template.expiration_day_count:
-        subscription.expiration_date = (datetime.now(timezone.utc) +
-                                        timedelta(days=subscription_template.expiration_day_count))
+        subscription.expiration_date = (
+                datetime.now(timezone.utc) + timedelta(days=subscription_template.expiration_day_count)
+        )
+
     db.add(subscription)
+
     return subscription
 
 

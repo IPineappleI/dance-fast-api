@@ -15,4 +15,4 @@ class Event(BaseModel):
     photo_url = Column(String, nullable=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    event_type = relationship("EventType", back_populates="events")
+    event_type = relationship("EventType", uselist=False, back_populates="events")

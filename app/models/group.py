@@ -14,7 +14,29 @@ class Group(BaseModel):
     max_capacity = Column(Integer, nullable=False)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    level = relationship("Level", back_populates="groups")
-    students = relationship("StudentGroup", back_populates="group")
-    teachers = relationship("TeacherGroup", back_populates="group")
-    lessons = relationship("Lesson", back_populates="group")
+    level = relationship("Level", uselist=False, back_populates="groups")
+    lessons = relationship("Lesson", uselist=True, back_populates="group")
+
+    teacher_groups = relationship("TeacherGroup", uselist=True, back_populates="group")
+    teachers = relationship(
+        "Teacher",
+        primaryjoin="Group.id == TeacherGroup.group_id",
+        secondary="teacher_groups",
+        secondaryjoin="TeacherGroup.teacher_id == Teacher.id",
+        uselist=True,
+        viewonly=True,
+        overlaps="teacher_groups",
+        back_populates="groups"
+    )
+
+    student_groups = relationship("StudentGroup", uselist=True, back_populates="group")
+    students = relationship(
+        "Student",
+        primaryjoin="Group.id == StudentGroup.group_id",
+        secondary="student_groups",
+        secondaryjoin="StudentGroup.student_id == Student.id",
+        uselist=True,
+        viewonly=True,
+        overlaps="student_groups",
+        back_populates="groups"
+    )

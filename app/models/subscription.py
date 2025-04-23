@@ -16,32 +16,33 @@ class Subscription(BaseModel):
     expiration_date = Column(DateTime(timezone=True), nullable=True)
     payment_id = Column(UUID(as_uuid=True), ForeignKey("payments.id"), nullable=True)
 
-    student = relationship("Student", back_populates="subscriptions")
-    subscription_template = relationship("SubscriptionTemplate", back_populates="subscriptions")
-    payment = relationship("Payment", back_populates="subscription")
-    lesson_subscriptions = relationship("LessonSubscription", back_populates="subscription")
+    subscription_template = relationship("SubscriptionTemplate", uselist=False, back_populates="subscriptions")
+    student = relationship("Student", uselist=False, back_populates="subscriptions")
+    payment = relationship("Payment", uselist=False, back_populates="subscription")
+
+    lesson_subscriptions = relationship("LessonSubscription", uselist=True, back_populates="subscription")
+    active_lesson_subscriptions = relationship(
+        "LessonSubscription",
+        primaryjoin="and_(LessonSubscription.subscription_id == Subscription.id, "
+                    "LessonSubscription.cancelled == False)",
+        uselist=True,
+        viewonly=True,
+        overlaps="lesson_subscriptions"
+    )
     lessons = relationship(
         "Lesson",
         primaryjoin="Subscription.id == LessonSubscription.subscription_id",
         secondary="lesson_subscriptions",
         secondaryjoin="LessonSubscription.lesson_id == Lesson.id",
+        uselist=True,
         viewonly=True,
-        overlaps="lesson_subscriptions",
+        overlaps="lesson_subscriptions, active_lesson_subscriptions",
         back_populates="subscriptions"
-    )
-    not_cancelled_lessons = relationship(
-        "LessonSubscription",
-        primaryjoin="and_(LessonSubscription.subscription_id == Subscription.id, "
-                    "LessonSubscription.cancelled == False)",
-        viewonly=True,
-        overlaps="lessons",
-        lazy="joined",
-        back_populates="subscription"
     )
 
     @hybrid_property
     def lessons_left(self):
-        return self.subscription_template.lesson_count - len(self.not_cancelled_lessons)
+        return self.subscription_template.lesson_count - len(self.active_lesson_subscriptions)
 
     @lessons_left.expression
     def lessons_left(cls):

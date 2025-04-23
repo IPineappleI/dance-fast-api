@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from datetime import datetime
 import uuid
 
-from app.schemas.payment import PaymentFullInfo
 from app.schemas.subscriptionTemplate import SubscriptionTemplateFullInfo
 
 
@@ -26,10 +25,16 @@ class SubscriptionInfo(SubscriptionBase):
         from_attributes = True
 
 
-class SubscriptionFullInfo(SubscriptionInfo):
+class SubscriptionMoreInfo(SubscriptionInfo):
     subscription_template: SubscriptionTemplateFullInfo
     lessons_left: int
-    payment: Optional[PaymentFullInfo] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionFullInfo(SubscriptionMoreInfo):
+    payment: Optional["PaymentFullInfo"] = None
 
     class Config:
         from_attributes = True
@@ -42,3 +47,8 @@ class SubscriptionUpdate(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+from app.schemas.payment import PaymentFullInfo
+
+SubscriptionFullInfo.model_rebuild()

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.schemas.association import AssociationGroup
+from app.schemas.group import GroupMoreInfo
 from app.schemas.user import UserBase, UserCreate, UserUpdate
 from app.schemas.level import LevelInfo
 from typing import List, Optional
@@ -35,7 +35,7 @@ class StudentMoreInfo(StudentInfo):
 
 
 class StudentFullInfo(StudentMoreInfo):
-    groups: List[AssociationGroup]
+    groups: List[GroupMoreInfo]
     subscriptions: List[SubscriptionFullInfo]
 
     class Config:

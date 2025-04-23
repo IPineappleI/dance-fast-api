@@ -16,6 +16,6 @@ class User(BaseModel):
     phone_number = Column(String, unique=True, nullable=False)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    student = relationship("Student", back_populates="user", uselist=False)
-    teacher = relationship("Teacher", back_populates="user", uselist=False)
-    admin = relationship("Admin", back_populates="user", uselist=False)
+    admin = relationship("Admin", uselist=False, back_populates="user")
+    student = relationship("Student", uselist=False, back_populates="user")
+    teacher = relationship("Teacher", uselist=False, back_populates="user")

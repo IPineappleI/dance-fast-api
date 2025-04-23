@@ -10,4 +10,4 @@ class Admin(BaseModel):
 
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True)
 
-    user = relationship("User", back_populates="admin")
+    user = relationship("User", uselist=False, back_populates="admin")

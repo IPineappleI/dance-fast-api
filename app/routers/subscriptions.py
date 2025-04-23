@@ -79,7 +79,7 @@ async def get_subscriptions_full_info(skip: int = 0, limit: int = 100, db: Sessi
     return subscriptions
 
 
-@router.get("/full-info/{student_id}", response_model=List[schemas.SubscriptionFullInfo])
+@router.get("/student/full-info/{student_id}", response_model=List[schemas.SubscriptionFullInfo])
 async def get_subscriptions_full_info_by_student_id(
         student_id: uuid.UUID,
         skip: int = 0, limit: int = 100,
@@ -96,13 +96,13 @@ async def get_subscriptions_full_info_by_student_id(
 
 @router.get("/{subscription_id}", response_model=schemas.SubscriptionInfo)
 async def get_subscription_by_id(subscription_id: uuid.UUID, db: Session = Depends(get_db)):
-    db_subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
-    if db_subscription is None:
+    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    if subscription is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Абонемент не найден"
         )
-    return db_subscription
+    return subscription
 
 
 @router.get("/full-info/{subscription_id}", response_model=schemas.SubscriptionFullInfo)
@@ -160,6 +160,11 @@ async def create_lesson_subscription(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Абонемент не найден"
         )
+    if subscription.lessons_left <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="В абонементе не осталось занятий"
+        )
 
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lesson:
@@ -168,23 +173,40 @@ async def create_lesson_subscription(
             detail="Занятие не найдено"
         )
 
-    existing_lesson = db.query(models.LessonSubscription).filter(
-        models.LessonSubscription.subscription_id == subscription_id,
-        models.LessonSubscription.lesson_id == lesson_id
-    ).first()
-
-    if existing_lesson:
+    if lesson.lesson_type not in subscription.subscription_template.lesson_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Абонемент уже связан с этим занятием"
+            detail="Данный абонемент не подходит для этого занятия"
+        )
+
+    if lesson.group_id and subscription.student not in lesson.group.students:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ученик не является членом группы"
+        )
+
+    existing_lesson_subscription = db.query(models.LessonSubscription).join(
+        models.Subscription, and_(
+            models.Subscription.id == models.LessonSubscription.subscription_id,
+            models.Subscription.student_id == subscription.student_id
+        )
+    ).filter(and_(
+        models.LessonSubscription.cancelled == False,
+        models.LessonSubscription.lesson_id == lesson.id
+    )).first()
+
+    if existing_lesson_subscription:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ученик уже записан на это занятие"
         )
 
     lesson_subscription = models.LessonSubscription(
         subscription_id=subscription_id,
         lesson_id=lesson_id
     )
-
     db.add(lesson_subscription)
+
     db.commit()
     db.refresh(lesson)
 

@@ -2,17 +2,8 @@ from sqlalchemy import Column, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
+from app.models import BaseModel
 from app.models.base import Base
-
-
-class TeacherLesson(Base):
-    __tablename__ = "teacher_lessons"
-
-    teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.id"), primary_key=True, nullable=False)
-    lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), primary_key=True, nullable=False)
-
-    teacher = relationship("Teacher", back_populates="lessons")
-    lesson = relationship("Lesson", back_populates="actual_teachers")
 
 
 class TeacherGroup(Base):
@@ -21,8 +12,8 @@ class TeacherGroup(Base):
     teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.id"), primary_key=True, nullable=False)
     group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), primary_key=True, nullable=False)
 
-    teacher = relationship("Teacher", back_populates="groups")
-    group = relationship("Group", back_populates="teachers")
+    teacher = relationship("Teacher", uselist=False, back_populates="teacher_groups")
+    group = relationship("Group", uselist=False, back_populates="teacher_groups")
 
 
 class StudentGroup(Base):
@@ -31,29 +22,8 @@ class StudentGroup(Base):
     student_id = Column(UUID(as_uuid=True), ForeignKey("students.id"), primary_key=True, nullable=False)
     group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id"), primary_key=True, nullable=False)
 
-    student = relationship("Student", back_populates="groups")
-    group = relationship("Group", back_populates="students")
-
-
-class LessonSubscription(Base):
-    __tablename__ = "lesson_subscriptions"
-
-    subscription_id = Column(UUID(as_uuid=True), ForeignKey("subscriptions.id"), primary_key=True, nullable=False)
-    lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), primary_key=True, nullable=False)
-    cancelled = Column(Boolean, nullable=False, default=False)
-
-    subscription = relationship("Subscription", back_populates="lesson_subscriptions")
-    lesson = relationship("Lesson", back_populates="lesson_subscriptions")
-
-
-class SubscriptionLessonType(Base):
-    __tablename__ = "subscription_lesson_types"
-
-    subscription_template_id = Column(UUID(as_uuid=True), ForeignKey("subscription_templates.id"), primary_key=True, nullable=False)
-    lesson_type_id = Column(UUID(as_uuid=True), ForeignKey("lesson_types.id"), primary_key=True, nullable=False)
-
-    subscription_template = relationship("SubscriptionTemplate", back_populates="subscription_lesson_types")
-    lesson_type = relationship("LessonType", back_populates="subscription_lesson_types")
+    student = relationship("Student", uselist=False, back_populates="student_groups")
+    group = relationship("Group", uselist=False, back_populates="student_groups")
 
 
 class TeacherLessonType(Base):
@@ -62,5 +32,36 @@ class TeacherLessonType(Base):
     teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.id"), primary_key=True, nullable=False)
     lesson_type_id = Column(UUID(as_uuid=True), ForeignKey("lesson_types.id"), primary_key=True, nullable=False)
 
-    teacher = relationship("Teacher", back_populates="lesson_types")
-    lesson_type = relationship("LessonType", back_populates="teachers")
+    teacher = relationship("Teacher", uselist=False, back_populates="teacher_lesson_types")
+    lesson_type = relationship("LessonType", uselist=False, back_populates="teacher_lesson_types")
+
+
+class TeacherLesson(Base):
+    __tablename__ = "teacher_lessons"
+
+    teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.id"), primary_key=True, nullable=False)
+    lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), primary_key=True, nullable=False)
+
+    teacher = relationship("Teacher", uselist=False, back_populates="teacher_lessons")
+    lesson = relationship("Lesson", uselist=False, back_populates="teacher_lessons")
+
+
+class SubscriptionLessonType(Base):
+    __tablename__ = "subscription_lesson_types"
+
+    subscription_template_id = Column(UUID(as_uuid=True), ForeignKey("subscription_templates.id"), primary_key=True, nullable=False)
+    lesson_type_id = Column(UUID(as_uuid=True), ForeignKey("lesson_types.id"), primary_key=True, nullable=False)
+
+    subscription_template = relationship("SubscriptionTemplate", uselist=False, back_populates="subscription_lesson_types")
+    lesson_type = relationship("LessonType", uselist=False, back_populates="subscription_lesson_types")
+
+
+class LessonSubscription(BaseModel):
+    __tablename__ = "lesson_subscriptions"
+
+    lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), nullable=False)
+    subscription_id = Column(UUID(as_uuid=True), ForeignKey("subscriptions.id"), nullable=False)
+    cancelled = Column(Boolean, nullable=False, default=False)
+
+    lesson = relationship("Lesson", uselist=False, back_populates="lesson_subscriptions")
+    subscription = relationship("Subscription", uselist=False, back_populates="lesson_subscriptions")

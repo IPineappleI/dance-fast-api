@@ -11,4 +11,4 @@ class Classroom(BaseModel):
     description = Column(String, nullable=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    lessons = relationship("Lesson", back_populates="classroom")
+    lessons = relationship("Lesson", uselist=True, back_populates="classroom")

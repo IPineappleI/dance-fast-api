@@ -55,13 +55,13 @@ async def get_events_full_info(skip: int = 0, limit: int = 100, db: Session = De
 
 @router.get("/{event_id}", response_model=schemas.EventInfo)
 async def get_event_by_id(event_id: uuid.UUID, db: Session = Depends(get_db)):
-    db_event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not db_event:
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Мероприятие не найдено"
         )
-    return db_event
+    return event
 
 
 @router.get("/full-info/{event_id}", response_model=schemas.EventFullInfo)

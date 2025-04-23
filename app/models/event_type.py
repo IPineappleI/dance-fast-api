@@ -11,4 +11,4 @@ class EventType(BaseModel):
     description = Column(String, nullable=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    events = relationship("Event", back_populates="event_type")
+    events = relationship("Event", uselist=True, back_populates="event_type")
