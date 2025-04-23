@@ -1,6 +1,8 @@
 import uuid
+from datetime import timezone, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response
+from sqlalchemy import exists, or_
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -14,37 +16,6 @@ router = APIRouter(
     tags=["students"],
     responses={404: {"description": "Ученик не найден"}, 204: {"description": "Связь уже удалена"}}
 )
-
-
-@router.post("/", response_model=schemas.StudentInfo, status_code=status.HTTP_201_CREATED)
-async def create_student(
-        student_data: schemas.StudentBase,
-        db: Session = Depends(get_db)
-):
-    user = db.query(models.User).filter(models.User.id == student_data.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден"
-        )
-
-    level = db.query(models.Level).filter(models.Level.id == student_data.level_id).first()
-    if not level:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Уровень подготовки не найден"
-        )
-
-    student = models.Student(
-        user_id=student_data.user_id,
-        level_id=student_data.level_id
-    )
-
-    db.add(student)
-    db.commit()
-    db.refresh(student)
-
-    return student
 
 
 @router.get("/", response_model=List[schemas.StudentInfo])
@@ -132,7 +103,11 @@ async def create_student_group(student_id: uuid.UUID, group_id: uuid.UUID, db: S
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Группа не найдена"
         )
-
+    if group.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Группа удалена"
+        )
     if len(group.student_groups) >= group.max_capacity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -143,11 +118,41 @@ async def create_student_group(student_id: uuid.UUID, group_id: uuid.UUID, db: S
         models.StudentGroup.student_id == student_id,
         models.StudentGroup.group_id == group_id
     ).first()
-
     if existing_group:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ученик уже связан с этой группой"
+        )
+
+    lesson_type_ids = db.query(models.LessonType.id).join(
+        models.SubscriptionLessonType
+    ).join(
+        models.SubscriptionTemplate
+    ).join(
+        models.Subscription
+    ).join(
+        models.Payment
+    ).filter(
+        models.Subscription.student_id == student.id,
+        or_(
+            models.Subscription.expiration_date == None,
+            models.Subscription.expiration_date > datetime.now(timezone.utc)
+        ),
+        models.Payment.terminated == False
+    ).all()
+    lesson_type_ids = [lesson_type_id.id for lesson_type_id in lesson_type_ids]
+
+    lessons_check = db.query(models.Lesson).filter(exists().where(
+        models.Lesson.group_id == group.id,
+        models.Lesson.start_time > datetime.now(timezone.utc),
+        ~models.Lesson.lesson_type_id.in_(lesson_type_ids),
+        models.Lesson.terminated == False,
+        models.Lesson.is_confirmed == True
+    )).first()
+    if lessons_check:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Для вступления в группу у ученика должны быть абонементы, подходящие для всех занятий группы"
         )
 
     student_group = models.StudentGroup(
