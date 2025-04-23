@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models
+from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
 
 import uuid
@@ -17,6 +18,7 @@ router = APIRouter(
 @router.post("/", response_model=schemas.DanceStyleInfo, status_code=status.HTTP_201_CREATED)
 async def create_dance_style(
         dance_style_data: schemas.DanceStyleBase,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     dance_style = models.DanceStyle(
@@ -33,13 +35,34 @@ async def create_dance_style(
 
 
 @router.get("/", response_model=List[schemas.DanceStyleInfo])
-async def get_dance_styles(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_dance_styles(
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     dance_styles = db.query(models.DanceStyle).offset(skip).limit(limit).all()
     return dance_styles
 
 
+@router.get("/active", response_model=List[schemas.DanceStyleInfo])
+async def get_active_dance_styles(
+        skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    dance_styles = db.query(models.DanceStyle).filter(
+        models.DanceStyle.terminated != True
+    ).offset(skip).limit(limit).all()
+
+    return dance_styles
+
+
 @router.get("/{dance_style_id}", response_model=schemas.DanceStyleInfo)
-async def get_dance_style_by_id(dance_style_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_dance_style_by_id(
+        dance_style_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     dance_style = db.query(models.DanceStyle).filter(models.DanceStyle.id == dance_style_id).first()
     if not dance_style:
         raise HTTPException(
@@ -53,6 +76,7 @@ async def get_dance_style_by_id(dance_style_id: uuid.UUID, db: Session = Depends
 async def patch_dance_style(
         dance_style_id: uuid.UUID,
         dance_style_data: schemas.DanceStyleUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     dance_style = db.query(models.DanceStyle).filter(models.DanceStyle.id == dance_style_id).first()

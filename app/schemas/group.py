@@ -52,6 +52,20 @@ class GroupUpdate(BaseModel):
         from_attributes = True
 
 
+class GroupSearch(BaseModel):
+    has_teachers: Optional[bool] = None
+    has_students: Optional[bool] = None
+    terminated: Optional[bool] = None
+
+    teacher_ids: Optional[List[uuid.UUID]] = None
+    student_ids: Optional[List[uuid.UUID]] = None
+    dance_style_ids: Optional[List[uuid.UUID]] = None
+    level_ids: Optional[List[uuid.UUID]] = None
+
+    class Config:
+        from_attributes = True
+
+
 from app.schemas.student import StudentMoreInfo
 from app.schemas.teacher import TeacherMoreInfo
 

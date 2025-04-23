@@ -3,6 +3,7 @@ from sqlalchemy import exists, and_, or_
 from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models
+from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
 
 import uuid
@@ -18,6 +19,7 @@ router = APIRouter(
 @router.post("/", response_model=schemas.ClassroomInfo, status_code=status.HTTP_201_CREATED)
 async def create_classroom(
         classroom_data: schemas.ClassroomBase,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     classroom = models.Classroom(
@@ -36,6 +38,7 @@ async def create_classroom(
 async def search_available_classrooms(
         filters: schemas.ClassroomSearch,
         skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     if filters.date_from > filters.date_to:
@@ -44,7 +47,8 @@ async def search_available_classrooms(
             detail="Время начала поиска не может быть больше времени конца поиска"
         )
 
-    classrooms = db.query(models.Classroom).filter(~exists(models.Lesson).where(and_(
+    classrooms = db.query(models.Classroom).filter(~exists(models.Lesson).where(
+        models.Classroom.terminated == False,
         models.Lesson.classroom_id == models.Classroom.id,
         models.Lesson.are_neighbours_allowed == False,
         models.Lesson.terminated == False,
@@ -53,26 +57,33 @@ async def search_available_classrooms(
             and_(filters.date_to > models.Lesson.start_time, filters.date_to <= models.Lesson.finish_time),
             and_(filters.date_from <= models.Lesson.start_time, filters.date_to >= models.Lesson.finish_time)
         )
-    ))).offset(skip).limit(limit).all()
+    )).offset(skip).limit(limit).all()
 
     return classrooms
 
 
 @router.get("/", response_model=List[schemas.ClassroomInfo])
-async def get_classrooms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_classrooms(
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     classroom = db.query(models.Classroom).offset(skip).limit(limit).all()
     return classroom
 
 
 @router.get("/{classroom_id}", response_model=schemas.ClassroomInfo)
-async def get_classroom_by_id(classroom_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_classroom_by_id(
+        classroom_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     classroom = db.query(models.Classroom).filter(models.Classroom.id == classroom_id).first()
     if classroom is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Зал не найден"
         )
-
     return classroom
 
 
@@ -80,6 +91,7 @@ async def get_classroom_by_id(classroom_id: uuid.UUID, db: Session = Depends(get
 async def patch_classroom(
         classroom_id: uuid.UUID,
         classroom_data: schemas.ClassroomUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     classroom = db.query(models.Classroom).filter(models.Classroom.id == classroom_id).first()

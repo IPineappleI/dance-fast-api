@@ -2,11 +2,11 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.database import get_db
-from app.models import Student, Teacher, User, Admin
+from app.models import Student, Teacher, User, Admin, Level
 from app.schemas import StudentFullInfoWithRole, TeacherFullInfoWithRole, AdminFullInfoWithRole
 from app.schemas.student import StudentFullInfo, StudentCreate
 from app.schemas.token import Token
@@ -58,6 +58,18 @@ async def register_student(
 ):
     user = create_user(student_data, db)
 
+    level = db.query(Level).filter(Level.id == student_data.level_id).first()
+    if not level:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Уровень подготовки не найден"
+        )
+    if level.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Уровень подготовки не активен"
+        )
+
     student = Student(
         user_id=user.id,
         level_id=student_data.level_id,
@@ -86,8 +98,8 @@ async def login_for_access_token(
 
     if user.terminated:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Данный аккаунт был деактивирован"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ваш аккаунт был деактивирован"
         )
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -114,12 +126,12 @@ async def get_current_user_full_info(
         teacher.role = "teacher"
         return teacher
 
-    admin = db.query(Admin).options(joinedload(Admin.user)).filter(Admin.user_id == current_user.id).first()
+    admin = db.query(Admin).filter(Admin.user_id == current_user.id).first()
     if admin:
         admin.role = "admin"
         return admin
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Пользователь не найден"
+        detail="У пользователя нет роли. Обратитесь в службу поддержки"
     )

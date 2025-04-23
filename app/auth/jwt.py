@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from jose import JWTError, jwt
@@ -29,9 +29,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     # Устанавливаем время истечения срока действия токена
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
 
@@ -61,7 +61,7 @@ def verify_token(token: str, credentials_exception: HTTPException) -> TokenData:
 async def get_current_user(
         token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
-) -> User:
+):
     """Получает текущего пользователя по токену."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -81,7 +81,7 @@ async def get_current_user(
     if user.terminated:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Неактивный аккаунт"
+            detail="Ваш аккаунт был деактивирован"
         )
 
     return user
@@ -90,7 +90,7 @@ async def get_current_user(
 async def get_current_admin(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
-) -> Admin:
+):
     """Проверяет, что текущий пользователь является администратором."""
     admin = db.query(Admin).filter(Admin.user_id == current_user.id).first()
     if admin is None:
@@ -104,7 +104,7 @@ async def get_current_admin(
 async def get_current_teacher(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
-) -> Admin:
+):
     """Проверяет, что текущий пользователь является администратором."""
     teacher = db.query(Teacher).filter(Teacher.user_id == current_user.id).first()
     if teacher is None:
@@ -118,7 +118,7 @@ async def get_current_teacher(
 async def get_current_student(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
-) -> Admin:
+):
     """Проверяет, что текущий пользователь является администратором."""
     student = db.query(Student).filter(Student.user_id == current_user.id).first()
     if student is None:
