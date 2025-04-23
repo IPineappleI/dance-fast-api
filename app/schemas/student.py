@@ -42,6 +42,13 @@ class StudentFullInfo(StudentMoreInfo):
         from_attributes = True
 
 
+class StudentFullInfoWithRole(StudentFullInfo):
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
 class StudentUpdate(UserUpdate):
     level_id: Optional[uuid.UUID] = None
 

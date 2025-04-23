@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.schemas.group import GroupMoreInfo
 from app.schemas.lessonType import LessonTypeFullInfo
-from app.schemas.user import UserBase, UserUpdate
+from app.schemas.user import UserBase, UserUpdate, UserCreate
 
 
 class TeacherBase(BaseModel):
@@ -38,6 +38,18 @@ class TeacherFullInfo(TeacherMoreInfo):
         from_attributes = True
 
 
+class TeacherFullInfoWithRole(TeacherFullInfo):
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
 class TeacherUpdate(UserUpdate):
+    class Config:
+        from_attributes = True
+
+
+class TeacherCreate(UserCreate):
     class Config:
         from_attributes = True

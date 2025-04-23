@@ -6,7 +6,6 @@ from typing import List
 
 from app.database import get_db
 from app import models, schemas
-from app.auth.password import get_password_hash
 
 
 router = APIRouter(
@@ -14,43 +13,6 @@ router = APIRouter(
     tags=["users"],
     responses={404: {"description": "Пользователь не найден"}}
 )
-
-
-@router.post("/", response_model=schemas.UserBase, status_code=status.HTTP_201_CREATED)
-async def create_user(
-        user_data: schemas.UserCreate,
-        db: Session = Depends(get_db)
-):
-    email_user = db.query(models.User).filter(models.User.email == user_data.email).first()
-    if email_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email уже используется"
-        )
-
-    phone_user = db.query(models.User).filter(models.User.phone_number == user_data.phone_number).first()
-    if phone_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Номер телефона уже используется"
-        )
-
-    hashed_password = get_password_hash(user_data.password)
-    user = models.User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        first_name=user_data.first_name,
-        middle_name=user_data.middle_name,
-        last_name=user_data.last_name,
-        description=user_data.description,
-        phone_number=user_data.phone_number
-    )
-
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    return user
 
 
 @router.get("/", response_model=List[schemas.UserBase])

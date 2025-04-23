@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.auth.jwt import get_current_admin
 from app.database import get_db
 from app import models, schemas
+from app.routers.auth import create_user
 from app.routers.users import patch_user
 
 
@@ -18,18 +20,14 @@ router = APIRouter(
 
 @router.post("/", response_model=schemas.TeacherInfo, status_code=status.HTTP_201_CREATED)
 async def create_teacher(
-        teacher_data: schemas.TeacherBase,
+        teacher_data: schemas.TeacherCreate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    user = db.query(models.User).filter(models.User.id == teacher_data.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден",
-        )
+    user = create_user(teacher_data, db)
 
     teacher = models.Teacher(
-        user_id=teacher_data.user_id
+        user_id=user.id
     )
 
     db.add(teacher)

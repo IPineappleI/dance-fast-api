@@ -1,15 +1,18 @@
+from typing import Union
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 from datetime import timedelta
 
 from app.database import get_db
-from app.models import (Student, Teacher, StudentGroup, Group, Subscription, SubscriptionTemplate, Payment,
-                        TeacherGroup, TeacherLessonType, User, Admin)
+from app.models import Student, Teacher, User, Admin
+from app.schemas import StudentFullInfoWithRole, TeacherFullInfoWithRole, AdminFullInfoWithRole
 from app.schemas.student import StudentFullInfo, StudentCreate
 from app.schemas.token import Token
 from app.auth.password import verify_password, get_password_hash
 from app.auth.jwt import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
+
 
 router = APIRouter(
     prefix="/auth",
@@ -17,43 +20,48 @@ router = APIRouter(
 )
 
 
-@router.post("/register", response_model=StudentFullInfo, status_code=status.HTTP_201_CREATED)
-async def register_student(
-        student_data: StudentCreate,
-        db: Session = Depends(get_db)
-):
-    email_user = db.query(User).filter(User.email == student_data.email).first()
+def create_user(user_data, db: Session):
+    email_user = db.query(User).filter(User.email == user_data.email).first()
     if email_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email уже используется"
         )
 
-    phone_user = db.query(User).filter(User.phone_number == student_data.phone_number).first()
+    phone_user = db.query(User).filter(User.phone_number == user_data.phone_number).first()
     if phone_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Номер телефона уже используется"
         )
 
-    hashed_password = get_password_hash(student_data.password)
-    new_user = User(
-        email=student_data.email,
+    hashed_password = get_password_hash(user_data.password)
+    user = User(
+        email=user_data.email,
         hashed_password=hashed_password,
-        first_name=student_data.first_name,
-        last_name=student_data.last_name,
-        middle_name=student_data.middle_name,
-        description=student_data.description,
-        phone_number=student_data.phone_number
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        middle_name=user_data.middle_name,
+        description=user_data.description,
+        phone_number=user_data.phone_number
     )
-
-    db.add(new_user)
+    db.add(user)
     db.commit()
 
+    return user
+
+
+@router.post("/register", response_model=StudentFullInfo, status_code=status.HTTP_201_CREATED)
+async def register_student(
+        student_data: StudentCreate,
+        db: Session = Depends(get_db)
+):
+    user = create_user(student_data, db)
+
     student = Student(
-        user_id=new_user.id,
+        user_id=user.id,
         level_id=student_data.level_id,
-        created_at=new_user.created_at
+        created_at=user.created_at
     )
 
     db.add(student)
@@ -91,28 +99,17 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/me")
+@router.get("/me", response_model=Union[StudentFullInfoWithRole, TeacherFullInfoWithRole, AdminFullInfoWithRole])
 async def get_current_user_full_info(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    student = db.query(Student).options(
-        joinedload(Student.user),
-        joinedload(Student.level),
-        joinedload(Student.student_groups).joinedload(StudentGroup.group).joinedload(Group.level),
-        joinedload(Student.subscriptions).joinedload(Subscription.subscription_template)
-        .joinedload(SubscriptionTemplate.subscription_lesson_types),
-        joinedload(Student.subscriptions).joinedload(Subscription.payment).joinedload(Payment.payment_type)
-    ).filter(Student.user_id == current_user.id).first()
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
     if student:
         student.role = "student"
         return student
 
-    teacher = db.query(Teacher).options(
-        joinedload(Teacher.user),
-        joinedload(Teacher.teacher_groups).joinedload(TeacherGroup.group).joinedload(Group.level),
-        joinedload(Teacher.teacher_lesson_types).joinedload(TeacherLessonType.lesson_type)
-    ).filter(Teacher.user_id == current_user.id).first()
+    teacher = db.query(Teacher).filter(Teacher.user_id == current_user.id).first()
     if teacher:
         teacher.role = "teacher"
         return teacher

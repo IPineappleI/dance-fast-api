@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel
-from app.schemas.user import UserBase, UserUpdate
+from app.schemas.user import UserBase, UserUpdate, UserCreate
 
 
 class AdminBase(BaseModel):
@@ -27,6 +27,18 @@ class AdminFullInfo(AdminInfo):
         from_attributes = True
 
 
+class AdminFullInfoWithRole(AdminFullInfo):
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
 class AdminUpdate(UserUpdate):
+    class Config:
+        from_attributes = True
+
+
+class AdminCreate(UserCreate):
     class Config:
         from_attributes = True

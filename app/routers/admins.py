@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.auth.jwt import get_current_admin
 from app.database import get_db
 from app import models, schemas
+from app.routers.auth import create_user
 from app.routers.users import patch_user
 
 
@@ -18,18 +20,14 @@ router = APIRouter(
 
 @router.post("/", response_model=schemas.AdminInfo, status_code=status.HTTP_201_CREATED)
 async def create_admin(
-        admin_data: schemas.AdminBase,
+        admin_data: schemas.AdminCreate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    user = db.query(models.User).filter(models.User.id == admin_data.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден"
-        )
+    user = create_user(admin_data, db)
 
     admin = models.Admin(
-        user_id=admin_data.user_id
+        user_id=user.id
     )
 
     db.add(admin)
@@ -40,19 +38,31 @@ async def create_admin(
 
 
 @router.get("/", response_model=List[schemas.AdminInfo])
-async def get_admins(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_admins(
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     admins = db.query(models.Admin).offset(skip).limit(limit).all()
     return admins
 
 
 @router.get("/full-info", response_model=List[schemas.AdminFullInfo])
-async def get_admins_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_admins_full_info(
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     admins = db.query(models.Admin).offset(skip).limit(limit).all()
     return admins
 
 
 @router.get("/{admin_id}", response_model=schemas.AdminInfo)
-async def get_admin_by_id(admin_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_admin_by_id(
+        admin_id: uuid.UUID,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
     if not admin:
         raise HTTPException(
@@ -63,7 +73,11 @@ async def get_admin_by_id(admin_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/full-info/{admin_id}", response_model=schemas.AdminFullInfo)
-async def get_admin_full_info_by_id(admin_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_admin_full_info_by_id(
+        admin_id: uuid.UUID,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
     if not admin:
         raise HTTPException(
@@ -77,6 +91,7 @@ async def get_admin_full_info_by_id(admin_id: uuid.UUID, db: Session = Depends(g
 async def patch_admin(
         admin_id: uuid.UUID,
         admin_data: schemas.AdminUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
