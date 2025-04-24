@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app import schemas, models
+from app.auth.jwt import get_current_admin
 from app.database import get_db
 
 router = APIRouter(
@@ -17,6 +18,7 @@ router = APIRouter(
 @router.post("/subscriptions", response_model=List[schemas.SubscriptionPurchasesInterval])
 async def get_subscription_purchases_statistics(
         filters: schemas.SubscriptionPurchasesFilters,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     if filters.date_from > filters.date_to:

@@ -7,8 +7,7 @@ from typing import List
 from app.auth.jwt import get_current_admin
 from app.database import get_db
 from app import models, schemas
-from app.routers.auth import create_user
-from app.routers.users import patch_user
+from app.routers.users import create_user, patch_user
 
 
 router = APIRouter(
@@ -101,8 +100,8 @@ async def patch_admin(
             detail="Администратор не найден"
         )
 
-    await patch_user(admin.user_id, admin_data, db)
+    patch_user(admin.user_id, admin_data, db)
 
-    db.commit()
     db.refresh(admin)
+
     return admin

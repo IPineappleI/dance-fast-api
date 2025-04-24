@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, Query
 from typing import List
 from app import schemas, models
+from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
 
 import uuid
@@ -14,11 +15,49 @@ router = APIRouter(
 )
 
 
+def check_lesson_type_data(lesson_type_data, db: Session, existing_lesson_type = None):
+    if lesson_type_data.dance_style_id:
+        dance_style = db.query(models.DanceStyle).filter(
+            models.DanceStyle.id == lesson_type_data.dance_style_id
+        ).first()
+        if not dance_style:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Стиль танца не найден"
+            )
+        if dance_style.terminated:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Стиль танца не активен"
+            )
+
+    if lesson_type_data.dance_style_id or type(lesson_type_data.is_group) is bool:
+        dance_style_id = lesson_type_data.dance_style_id if lesson_type_data.dance_style_id \
+            else existing_lesson_type.dance_style_id
+
+        is_group = lesson_type_data.is_group if type(lesson_type_data.is_group) is bool \
+            else existing_lesson_type.is_group
+
+        lesson_type_check = db.query(models.LessonType).filter(
+            models.LessonType.dance_style_id == dance_style_id,
+            models.LessonType.is_group == is_group
+        ).first()
+
+        if lesson_type_check:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Такой тип занятия уже существует"
+            )
+
+
 @router.post("/", response_model=schemas.LessonTypeInfo, status_code=status.HTTP_201_CREATED)
 async def create_lesson_type(
         lesson_type_data: schemas.LessonTypeBase,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
+    check_lesson_type_data(lesson_type_data, db)
+
     lesson_type = models.LessonType(
         dance_style_id=lesson_type_data.dance_style_id,
         is_group=lesson_type_data.is_group
@@ -46,6 +85,7 @@ def apply_filters_to_lesson_types(lesson_types: Query, filters):
 async def search_lesson_types(
         filters: schemas.LessonTypeSearch,
         skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     lesson_types = db.query(models.LessonType)
@@ -58,6 +98,7 @@ async def search_lesson_types(
 async def search_lesson_types_full_info(
         filters: schemas.LessonTypeSearch,
         skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     lesson_types = db.query(models.LessonType)
@@ -67,7 +108,11 @@ async def search_lesson_types_full_info(
 
 
 @router.get("/{lesson_type_id}", response_model=schemas.LessonTypeInfo)
-async def get_lesson_type_by_id(lesson_type_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_lesson_type_by_id(
+        lesson_type_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
     if not lesson_type:
         raise HTTPException(
@@ -78,7 +123,11 @@ async def get_lesson_type_by_id(lesson_type_id: uuid.UUID, db: Session = Depends
 
 
 @router.get("/full-info/{lesson_type_id}", response_model=schemas.LessonTypeFullInfo)
-async def get_lesson_type_full_info_by_id(lesson_type_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_lesson_type_full_info_by_id(
+        lesson_type_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
     if not lesson_type:
         raise HTTPException(
@@ -92,6 +141,7 @@ async def get_lesson_type_full_info_by_id(lesson_type_id: uuid.UUID, db: Session
 async def patch_lesson_type(
         lesson_type_id: uuid.UUID,
         lesson_type_data: schemas.LessonTypeUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
@@ -100,6 +150,8 @@ async def patch_lesson_type(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Тип занятия не найден"
         )
+
+    check_lesson_type_data(lesson_type_data, db, lesson_type)
 
     for field, value in lesson_type_data.model_dump(exclude_unset=True).items():
         setattr(lesson_type, field, value)

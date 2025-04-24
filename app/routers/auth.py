@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from app.database import get_db
 from app.models import Student, Teacher, User, Admin, Level
+from app.routers.users import create_user
 from app.schemas import StudentFullInfoWithRole, TeacherFullInfoWithRole, AdminFullInfoWithRole
 from app.schemas.student import StudentFullInfo, StudentCreate
 from app.schemas.token import Token
@@ -20,44 +21,11 @@ router = APIRouter(
 )
 
 
-def create_user(user_data, db: Session):
-    email_user = db.query(User).filter(User.email == user_data.email).first()
-    if email_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email уже используется"
-        )
-
-    phone_user = db.query(User).filter(User.phone_number == user_data.phone_number).first()
-    if phone_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Номер телефона уже используется"
-        )
-
-    hashed_password = get_password_hash(user_data.password)
-    user = User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        first_name=user_data.first_name,
-        last_name=user_data.last_name,
-        middle_name=user_data.middle_name,
-        description=user_data.description,
-        phone_number=user_data.phone_number
-    )
-    db.add(user)
-    db.commit()
-
-    return user
-
-
 @router.post("/register", response_model=StudentFullInfo, status_code=status.HTTP_201_CREATED)
 async def register_student(
         student_data: StudentCreate,
         db: Session = Depends(get_db)
 ):
-    user = create_user(student_data, db)
-
     level = db.query(Level).filter(Level.id == student_data.level_id).first()
     if not level:
         raise HTTPException(
@@ -69,6 +37,8 @@ async def register_student(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Уровень подготовки не активен"
         )
+
+    user = create_user(student_data, db)
 
     student = Student(
         user_id=user.id,

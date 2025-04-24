@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
 from app import models, schemas
 
@@ -18,6 +19,7 @@ router = APIRouter(
 @router.post("/", response_model=schemas.LevelInfo, status_code=status.HTTP_201_CREATED)
 async def create_level(
         level_data: schemas.LevelBase,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     level = models.Level(
@@ -33,13 +35,31 @@ async def create_level(
 
 
 @router.get("/", response_model=List[schemas.LevelInfo])
-async def get_levels(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_levels(
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     levels = db.query(models.Level).offset(skip).limit(limit).all()
     return levels
 
 
+@router.get("/active", response_model=List[schemas.LevelInfo])
+async def get_active_levels(
+        skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    levels = db.query(models.Level).filter(models.Level.terminated == False).offset(skip).limit(limit).all()
+    return levels
+
+
 @router.get("/{level_id}", response_model=schemas.LevelInfo)
-async def get_level_by_id(level_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_level_by_id(
+        level_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     level = db.query(models.Level).filter(models.Level.id == level_id).first()
     if level is None:
         raise HTTPException(
@@ -53,6 +73,7 @@ async def get_level_by_id(level_id: uuid.UUID, db: Session = Depends(get_db)):
 async def patch_level(
         level_id: uuid.UUID,
         level_data: schemas.LevelUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     level = db.query(models.Level).filter(models.Level.id == level_id).first()

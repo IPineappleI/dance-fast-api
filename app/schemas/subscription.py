@@ -7,6 +7,15 @@ import uuid
 from app.schemas.subscriptionTemplate import SubscriptionTemplateFullInfo
 
 
+class SubscriptionCreate(BaseModel):
+    student_id: uuid.UUID
+    subscription_template_id: uuid.UUID
+    payment_id: uuid.UUID
+
+    class Config:
+        from_attributes = True
+
+
 class SubscriptionBase(BaseModel):
     student_id: uuid.UUID
     subscription_template_id: uuid.UUID

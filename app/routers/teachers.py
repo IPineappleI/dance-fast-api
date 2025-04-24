@@ -4,11 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.auth.jwt import get_current_admin
+from app.auth.jwt import get_current_admin, get_current_user, get_current_teacher
 from app.database import get_db
 from app import models, schemas
-from app.routers.auth import create_user
-from app.routers.users import patch_user
+from app.routers.users import create_user, patch_user
 
 
 router = APIRouter(
@@ -16,6 +15,19 @@ router = APIRouter(
     tags=["teachers"],
     responses={404: {"description": "Преподаватель не найден"}, 204: {"description": "Связь уже удалена"}}
 )
+
+
+def check_teacher(teacher, current_teacher):
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Преподаватель не найден"
+        )
+    if teacher.id != current_teacher.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав"
+        )
 
 
 @router.post("/", response_model=schemas.TeacherInfo, status_code=status.HTTP_201_CREATED)
@@ -38,19 +50,28 @@ async def create_teacher(
 
 
 @router.get("/", response_model=List[schemas.TeacherInfo])
-async def get_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_teachers(
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
     teachers = db.query(models.Teacher).offset(skip).limit(limit).all()
     return teachers
 
 
 @router.get("/full-info", response_model=List[schemas.TeacherFullInfo])
-async def get_teachers_full_info(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_teachers_full_info(
+        skip: int = 0, limit: int = 100,
+        db: Session = Depends(get_db)
+):
     teachers = db.query(models.Teacher).offset(skip).limit(limit).all()
     return teachers
 
 
 @router.get("/{teacher_id}", response_model=schemas.TeacherInfo)
-async def get_teacher_by_id(teacher_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_teacher_by_id(
+        teacher_id: uuid.UUID,
+        db: Session = Depends(get_db)
+):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
@@ -61,7 +82,10 @@ async def get_teacher_by_id(teacher_id: uuid.UUID, db: Session = Depends(get_db)
 
 
 @router.get("/full-info/{teacher_id}", response_model=schemas.TeacherFullInfo)
-async def get_teacher_full_info_by_id(teacher_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_teacher_full_info_by_id(
+        teacher_id: uuid.UUID,
+        db: Session = Depends(get_db)
+):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
@@ -76,6 +100,7 @@ async def get_teacher_full_info_by_id(teacher_id: uuid.UUID, db: Session = Depen
 async def patch_teacher(
         teacher_id: uuid.UUID,
         teacher_data: schemas.TeacherUpdate,
+        current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
@@ -84,10 +109,14 @@ async def patch_teacher(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Преподаватель не найден"
         )
+    if teacher.user_id != current_user.id and not current_user.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав"
+        )
 
-    await patch_user(teacher.user_id, teacher_data, db)
+    patch_user(teacher.user_id, teacher_data, db)
 
-    db.commit()
     db.refresh(teacher)
 
     return teacher
@@ -95,19 +124,25 @@ async def patch_teacher(
 
 @router.post("/lesson-types/{teacher_id}/{lesson_type_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_teacher_lesson_type(teacher_id: uuid.UUID, lesson_type_id: uuid.UUID, db: Session = Depends(get_db)):
+async def create_teacher_lesson_type(
+        teacher_id: uuid.UUID,
+        lesson_type_id: uuid.UUID,
+        current_teacher: models.Teacher = Depends(get_current_teacher),
+        db: Session = Depends(get_db)
+):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
-    if not teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Преподаватель не найден"
-        )
+    check_teacher(teacher, current_teacher)
 
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
     if not lesson_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Тип занятия не найден"
+        )
+    if lesson_type.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Тип занятия не активен"
         )
 
     existing_lesson_type = db.query(models.TeacherLessonType).filter(
@@ -137,14 +172,11 @@ async def delete_teacher_lesson_type(
         teacher_id: uuid.UUID,
         lesson_type_id: uuid.UUID,
         response: Response,
+        current_teacher: models.Teacher = Depends(get_current_teacher),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
-    if not teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Преподаватель не найден"
-        )
+    check_teacher(teacher, current_teacher)
 
     lesson_type = db.query(models.LessonType).filter(models.LessonType.id == lesson_type_id).first()
     if not lesson_type:
@@ -169,12 +201,22 @@ async def delete_teacher_lesson_type(
 
 @router.post("/groups/{teacher_id}/{group_id}", response_model=schemas.TeacherFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_teacher_group(teacher_id: uuid.UUID, group_id: uuid.UUID, db: Session = Depends(get_db)):
+async def create_teacher_group(
+        teacher_id: uuid.UUID,
+        group_id: uuid.UUID,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Преподаватель не найден"
+        )
+    if teacher.user.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Аккаунт преподавателя деактивирован"
         )
 
     group = db.query(models.Group).filter(models.Group.id == group_id).first()
@@ -182,6 +224,11 @@ async def create_teacher_group(teacher_id: uuid.UUID, group_id: uuid.UUID, db: S
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Группа не найдена"
+        )
+    if group.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Группа не активна"
         )
 
     existing_group = db.query(models.TeacherGroup).filter(
@@ -211,6 +258,7 @@ async def delete_teacher_group(
         teacher_id: uuid.UUID,
         group_id: uuid.UUID,
         response: Response,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
@@ -243,19 +291,25 @@ async def delete_teacher_group(
 
 @router.post("/lessons/{teacher_id}/{lesson_id}", response_model=schemas.LessonFullInfo,
              status_code=status.HTTP_201_CREATED)
-async def create_teacher_lesson(teacher_id: uuid.UUID, lesson_id: uuid.UUID, db: Session = Depends(get_db)):
+async def create_teacher_lesson(
+        teacher_id: uuid.UUID,
+        lesson_id: uuid.UUID,
+        current_teacher: models.Teacher = Depends(get_current_teacher),
+        db: Session = Depends(get_db)
+):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
-    if not teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Преподаватель не найден"
-        )
+    check_teacher(teacher, current_teacher)
 
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Занятие не найдено"
+        )
+    if lesson.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Занятие отменено"
         )
 
     existing_lesson = db.query(models.TeacherLesson).filter(
@@ -285,14 +339,11 @@ async def delete_teacher_lesson(
         teacher_id: uuid.UUID,
         lesson_id: uuid.UUID,
         response: Response,
+        current_teacher: models.Teacher = Depends(get_current_teacher),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
-    if not teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Преподаватель не найден"
-        )
+    check_teacher(teacher, current_teacher)
 
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lesson:

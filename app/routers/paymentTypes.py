@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app import schemas, models
+from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
 
 import uuid
@@ -17,6 +18,7 @@ router = APIRouter(
 @router.post("/", response_model=schemas.PaymentTypeInfo, status_code=status.HTTP_201_CREATED)
 async def create_payment_type(
         payment_type_data: schemas.PaymentTypeBase,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     payment_type = models.PaymentType(
@@ -31,13 +33,34 @@ async def create_payment_type(
 
 
 @router.get("/", response_model=List[schemas.PaymentTypeInfo])
-async def get_payment_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_payment_types(
+        skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
     payment_types = db.query(models.PaymentType).offset(skip).limit(limit).all()
     return payment_types
 
 
+@router.get("/active", response_model=List[schemas.PaymentTypeInfo])
+async def get_active_payment_types(
+        skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    payment_types = db.query(models.PaymentType).filter(
+        models.PaymentType.terminated == False
+    ).offset(skip).limit(limit).all()
+
+    return payment_types
+
+
 @router.get("/{payment_type_id}", response_model=schemas.PaymentTypeInfo)
-async def get_payment_type_by_id(payment_type_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_payment_type_by_id(
+        payment_type_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
     payment_type = db.query(models.PaymentType).filter(models.PaymentType.id == payment_type_id).first()
     if payment_type is None:
         raise HTTPException(
@@ -51,6 +74,7 @@ async def get_payment_type_by_id(payment_type_id: uuid.UUID, db: Session = Depen
 async def patch_payment_type(
         payment_type_id: uuid.UUID,
         payment_type_data: schemas.PaymentTypeUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     payment_type = db.query(models.PaymentType).filter(models.PaymentType.id == payment_type_id).first()

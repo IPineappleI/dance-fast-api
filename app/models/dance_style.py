@@ -13,6 +13,3 @@ class DanceStyle(BaseModel):
     terminated = Column(Boolean, nullable=False, default=False)
 
     lesson_types = relationship("LessonType", uselist=True, back_populates="dance_style")
-    #lessons = relationship("Lesson", back_populates="lesson_type")
-    #subscription_templates = relationship("SubscriptionLessonType", back_populates="lesson_type")
-    #teachers = relationship("TeacherLessonType", back_populates="lesson_type")
