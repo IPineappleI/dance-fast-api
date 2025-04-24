@@ -27,6 +27,8 @@ class UserUpdate(BaseModel):
     middle_name: Optional[str] = None
     description: Optional[str] = None
     phone_number: Optional[str] = None
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
     terminated: Optional[bool] = None
 
     class Config:

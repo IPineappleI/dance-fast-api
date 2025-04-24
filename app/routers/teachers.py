@@ -54,6 +54,7 @@ async def create_teacher(
 @router.get("/", response_model=List[schemas.TeacherInfo])
 async def get_teachers(
         skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     teachers = db.query(models.Teacher).offset(skip).limit(limit).all()
@@ -63,6 +64,7 @@ async def get_teachers(
 @router.get("/full-info", response_model=List[schemas.TeacherFullInfo])
 async def get_teachers_full_info(
         skip: int = 0, limit: int = 100,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     teachers = db.query(models.Teacher).offset(skip).limit(limit).all()
@@ -72,6 +74,7 @@ async def get_teachers_full_info(
 @router.get("/{teacher_id}", response_model=schemas.TeacherInfo)
 async def get_teacher_by_id(
         teacher_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
@@ -86,6 +89,7 @@ async def get_teacher_by_id(
 @router.get("/full-info/{teacher_id}", response_model=schemas.TeacherFullInfo)
 async def get_teacher_full_info_by_id(
         teacher_id: uuid.UUID,
+        current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()

@@ -145,6 +145,7 @@ async def get_subscription_template_full_info_by_id(
 async def patch_subscription_template(
         subscription_template_id: uuid.UUID,
         subscription_template_data: schemas.SubscriptionTemplateUpdate,
+        current_admin: models.Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     subscription_template = db.query(models.SubscriptionTemplate).filter(
