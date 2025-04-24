@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from typing import List
 from datetime import datetime, timezone, timedelta
 
@@ -106,41 +106,42 @@ async def create_subscription(
     return subscription
 
 
-@router.get("/", response_model=List[schemas.SubscriptionInfo])
-async def get_subscriptions(
-        skip: int = 0, limit: int = 100,
-        current_admin: models.Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
-):
-    subscriptions = db.query(models.Subscription).offset(skip).limit(limit).all()
+def apply_filters_to_subscriptions(subscriptions: Query, filters):
+    if filters.student_id:
+        subscriptions = subscriptions.filter(models.Subscription.student_id == filters.student_id)
+    if type(filters.is_paid) is bool:
+        subscriptions = subscriptions.filter((models.Subscription.payment_id != None) == filters.is_paid)
+    if type(filters.is_expired) is bool:
+        subscriptions = subscriptions.filter(or_(
+            models.Subscription.expiration_date == None,
+            models.Subscription.expiration_date > datetime.now(timezone.utc)) != filters.is_expired
+        )
     return subscriptions
 
 
-@router.get("/full-info", response_model=List[schemas.SubscriptionFullInfo])
-async def get_subscriptions_full_info(
-        skip: int = 0, limit: int = 100,
-        current_admin: models.Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
-):
-    subscriptions = db.query(models.Subscription).offset(skip).limit(limit).all()
-    return subscriptions
-
-
-@router.get("/student/full-info/{student_id}", response_model=List[schemas.SubscriptionFullInfo])
-async def get_subscriptions_full_info_by_student_id(
-        student_id: uuid.UUID,
+@router.post("/search", response_model=List[schemas.SubscriptionInfo])
+async def search_subscriptions(
+        filters: schemas.SubscriptionSearch,
         skip: int = 0, limit: int = 100,
         current_user: models.User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    now = datetime.now(timezone.utc)
+    subscriptions = db.query(models.Subscription)
+    subscriptions = apply_filters_to_subscriptions(subscriptions, filters)
+    subscriptions = subscriptions.offset(skip).limit(limit).all()
+    return subscriptions
 
-    subscriptions = db.query(models.Subscription).filter(
-        models.Subscription.student_id == student_id,
-        or_(models.Subscription.expiration_date == None, models.Subscription.expiration_date > now),
-        models.Subscription.lessons_left > 0
-    ).offset(skip).limit(limit).all()
 
+@router.post("/search/full-info", response_model=List[schemas.SubscriptionFullInfo])
+async def search_subscriptions_full_info(
+        filters: schemas.SubscriptionSearch,
+        skip: int = 0, limit: int = 100,
+        current_user: models.User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    subscriptions = db.query(models.Subscription)
+    subscriptions = apply_filters_to_subscriptions(subscriptions, filters)
+    subscriptions = subscriptions.offset(skip).limit(limit).all()
     return subscriptions
 
 

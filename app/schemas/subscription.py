@@ -16,6 +16,15 @@ class SubscriptionCreate(BaseModel):
         from_attributes = True
 
 
+class SubscriptionSearch(BaseModel):
+    student_id: Optional[uuid.UUID] = None
+    is_paid: Optional[bool] = None
+    is_expired: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
 class SubscriptionBase(BaseModel):
     student_id: uuid.UUID
     subscription_template_id: uuid.UUID
@@ -43,7 +52,7 @@ class SubscriptionMoreInfo(SubscriptionInfo):
 
 
 class SubscriptionFullInfo(SubscriptionMoreInfo):
-    payment: Optional["PaymentFullInfo"] = None
+    payment: Optional["PaymentInfo"] = None
 
     class Config:
         from_attributes = True
@@ -58,6 +67,6 @@ class SubscriptionUpdate(BaseModel):
         from_attributes = True
 
 
-from app.schemas.payment import PaymentFullInfo
+from app.schemas.payment import PaymentInfo
 
 SubscriptionFullInfo.model_rebuild()
