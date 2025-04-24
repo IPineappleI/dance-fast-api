@@ -34,6 +34,7 @@ class ClassroomUpdate(BaseModel):
 class ClassroomSearch(BaseModel):
     date_from: datetime
     date_to: datetime
+    are_neighbours_allowed: bool
 
     class Config:
         from_attributes = True

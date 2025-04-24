@@ -1,12 +1,14 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.auth.jwt import get_current_admin, get_current_user, get_current_teacher
 from app.database import get_db
 from app import models, schemas
+from app.routers.lessons import get_teacher_parallel_lesson
 from app.routers.users import create_user, patch_user
 
 
@@ -312,14 +314,21 @@ async def create_teacher_lesson(
             detail="Занятие отменено"
         )
 
-    existing_lesson = db.query(models.TeacherLesson).filter(
+    existing_teacher_lesson = db.query(models.TeacherLesson).filter(
         models.TeacherLesson.teacher_id == teacher_id,
         models.TeacherLesson.lesson_id == lesson_id
     ).first()
-    if existing_lesson:
+    if existing_teacher_lesson:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Преподаватель уже связан с этим занятием"
+        )
+
+    parallel_teacher_lesson = get_teacher_parallel_lesson(teacher_id, lesson.start_time, lesson.finish_time, db)
+    if parallel_teacher_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Преподаватель уже связан с пересекающимся по времени занятием"
         )
 
     teacher_lesson = models.TeacherLesson(

@@ -11,6 +11,7 @@ from app.database import get_db
 
 import uuid
 
+from app.routers.lessons import get_teacher_parallel_lesson
 from app.schemas import SlotAvailable
 
 
@@ -127,13 +128,20 @@ async def search_available_slots(
             if current_datetime >= date_from and current_datetime >= now:
                 finish_datetime = current_datetime.replace(hour=slot.end_time.hour, minute=slot.end_time.minute)
                 if finish_datetime <= date_to:
-                    available_slots.append(
-                        SlotAvailable(
-                            teacher=slot.teacher,
-                            start_time=current_datetime,
-                            finish_time=finish_datetime
-                        )
+                    parallel_lesson = get_teacher_parallel_lesson(
+                        slot.teacher_id,
+                        current_datetime,
+                        finish_datetime,
+                        db
                     )
+                    if not parallel_lesson:
+                        available_slots.append(
+                            SlotAvailable(
+                                teacher=slot.teacher,
+                                start_time=current_datetime,
+                                finish_time=finish_datetime
+                            )
+                        )
 
             current_datetime = current_datetime + timedelta(days=7)
 

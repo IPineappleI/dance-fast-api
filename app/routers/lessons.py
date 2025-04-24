@@ -2,7 +2,7 @@ import uuid
 from datetime import timezone, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session, Query
 from typing import List
 
@@ -18,22 +18,18 @@ router = APIRouter(
 )
 
 
-async def check_classroom(classroom_id, start_time, finish_time, db: Session):
+async def check_classroom(classroom_id, start_time, finish_time, are_neighbours_allowed, db: Session):
     classroom = db.query(models.Classroom).filter(models.Classroom.id == classroom_id).first()
     if not classroom:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Зал не найден"
         )
-    if classroom.terminated:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Зал не активен"
-        )
 
     available_classrooms = await search_available_classrooms(schemas.ClassroomSearch(
         date_from=start_time,
-        date_to=finish_time
+        date_to=finish_time,
+        are_neighbours_allowed=are_neighbours_allowed
     ), db=db)
 
     if classroom not in available_classrooms:
@@ -55,6 +51,11 @@ async def check_lesson_data(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Начало занятия должно быть раньше его конца"
+        )
+    if start_time < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Запрещено создавать занятия в прошлом"
         )
 
     if lesson_data.lesson_type_id:
@@ -80,8 +81,12 @@ async def check_lesson_data(
                 detail="Выбранный тип занятия является групповым"
             )
 
-    if 'classroom_id' in lesson_data and lesson_data.classroom_id:
-        await check_classroom(lesson_data.classroom_id, start_time, finish_time, db)
+    are_neighbours_allowed = lesson_data.are_neighbours_allowed if type(lesson_data.are_neighbours_allowed) is bool \
+        else existing_lesson.are_neighbours_allowed
+    if 'classroom_id' in lesson_data.model_dump(exclude_none=True):
+        await check_classroom(
+            lesson_data.classroom_id, start_time, finish_time, are_neighbours_allowed, db
+        )
 
 
 def get_and_check_group(group_id, db: Session):
@@ -189,6 +194,47 @@ def apply_filters_to_lessons(lessons: Query, filters):
     return lessons
 
 
+def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session):
+    teacher_parallel_lesson = db.query(models.Lesson).join(
+        models.TeacherLesson, and_(
+            models.TeacherLesson.teacher_id == teacher_id,
+            models.TeacherLesson.lesson_id == models.Lesson.id
+        )
+    ).filter(
+        models.Lesson.terminated == False,
+        or_(
+            and_(start_time >= models.Lesson.start_time,
+                 start_time < models.Lesson.finish_time),
+            and_(finish_time > models.Lesson.start_time,
+                 finish_time <= models.Lesson.finish_time),
+            and_(start_time <= models.Lesson.start_time,
+                 finish_time >= models.Lesson.finish_time)
+        )
+    ).first()
+    return teacher_parallel_lesson
+
+
+def get_student_parallel_lesson(student_id, start_time, finish_time, db: Session):
+    student_parallel_lesson = db.query(models.Lesson).join(
+        models.LessonSubscription, and_(
+            models.LessonSubscription.lesson_id == models.Lesson.id,
+            models.LessonSubscription.cancelled == False
+        )
+    ).join(models.Subscription).filter(
+        models.Subscription.student_id == student_id,
+        models.Lesson.terminated == False,
+        or_(
+            and_(start_time >= models.Lesson.start_time,
+                 start_time < models.Lesson.finish_time),
+            and_(finish_time > models.Lesson.start_time,
+                 finish_time <= models.Lesson.finish_time),
+            and_(start_time <= models.Lesson.start_time,
+                 finish_time >= models.Lesson.finish_time)
+        )
+    ).first()
+    return student_parallel_lesson
+
+
 @router.post("/", response_model=schemas.LessonInfo, status_code=status.HTTP_201_CREATED)
 async def create_lesson(
         lesson_data: schemas.LessonBase,
@@ -240,6 +286,24 @@ async def create_individual_lesson(
 
     subscription = create_subscription(student.id, lesson_data.lesson_type_id, db)
 
+    parallel_teacher_lesson = get_teacher_parallel_lesson(
+        current_teacher.id, lesson_data.start_time, lesson_data.finish_time, db
+    )
+    if parallel_teacher_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Преподаватель уже связан с пересекающимся по времени занятием"
+        )
+
+    parallel_student_lesson = get_student_parallel_lesson(
+        student.id, lesson_data.start_time, lesson_data.finish_time, db
+    )
+    if parallel_student_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ученик уже записан на пересекающееся по времени занятие"
+        )
+
     lesson = models.Lesson(
         name=lesson_data.name,
         description=lesson_data.description,
@@ -284,6 +348,18 @@ async def create_group_lesson(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Преподаватель не связан с данной группой"
+        )
+
+    parallel_lesson = get_teacher_parallel_lesson(
+        current_teacher.id,
+        lesson_data.start_time,
+        lesson_data.finish_time,
+        db
+    )
+    if parallel_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Преподаватель уже связан с пересекающимся по времени занятием"
         )
 
     lesson = models.Lesson(
@@ -343,6 +419,27 @@ async def create_lesson_request(
         )
 
     subscription = create_subscription(current_student.id, lesson_data.lesson_type_id, db)
+
+    parallel_lesson = get_teacher_parallel_lesson(
+        teacher.id,
+        lesson_data.start_time,
+        lesson_data.finish_time,
+        db
+    )
+    if parallel_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Преподаватель уже связан с пересекающимся по времени занятием"
+        )
+
+    parallel_student_lesson = get_student_parallel_lesson(
+        current_student.id, lesson_data.start_time, lesson_data.finish_time, db
+    )
+    if parallel_student_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ученик уже записан на пересекающееся по времени занятие"
+        )
 
     lesson = models.Lesson(
         name=lesson_data.name,
@@ -408,7 +505,9 @@ async def respond_to_lesson_request(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Зал не указан"
             )
-        await check_classroom(response.classroom_id, request.start_time, request.finish_time, db)
+        await check_classroom(
+            response.classroom_id, request.start_time, request.finish_time, request.are_neighbours_allowed, db
+        )
         request.classroom_id = response.classroom_id
         request.is_confirmed = True
     else:

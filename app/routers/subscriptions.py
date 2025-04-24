@@ -10,6 +10,7 @@ from app import models, schemas
 
 import uuid
 
+from app.routers.lessons import get_student_parallel_lesson
 
 router = APIRouter(
     prefix="/subscriptions",
@@ -260,6 +261,15 @@ async def create_lesson_subscription(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ученик уже записан на это занятие"
+        )
+
+    parallel_student_lesson = get_student_parallel_lesson(
+        current_student.id, lesson.start_time, lesson.finish_time, db
+    )
+    if parallel_student_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ученик уже записан на пересекающееся по времени занятие"
         )
 
     lesson_subscription = models.LessonSubscription(
