@@ -4,7 +4,7 @@ from app.schemas.subscription import SubscriptionFullInfo
 from app.schemas.student import StudentMoreInfo
 from app.schemas.teacher import TeacherMoreInfo
 from app.schemas.subscriptionTemplate import SubscriptionTemplateFullInfo
-from app.schemas.group import GroupMoreInfo
+from app.schemas.group import GroupFullInfo
 from app.schemas.lessonType import LessonTypeFullInfo
 from app.schemas.classroom import ClassroomInfo
 import uuid
@@ -89,7 +89,7 @@ class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeFullInfo
     classroom: Optional[ClassroomInfo] = None
     subscription_templates: List[SubscriptionTemplateFullInfo]
-    group: Optional[GroupMoreInfo] = None
+    group: Optional[GroupFullInfo] = None
     actual_students: List[StudentMoreInfo]
     actual_teachers: List[TeacherMoreInfo]
 
