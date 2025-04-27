@@ -83,10 +83,7 @@ async def search_available_classrooms(
             detail='Время начала поиска не может быть больше времени конца поиска'
         )
     if filters.date_from < datetime.now(timezone('Europe/Moscow')):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Время начала поиска не может быть меньше текущего времени'
-        )
+        return ClassroomPage(classrooms=[], total=0)
 
     classrooms = db.query(Classroom).where(Classroom.terminated == False).where(~exists(Lesson).where(
         Lesson.classroom_id == Classroom.id,
