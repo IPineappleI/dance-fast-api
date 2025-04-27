@@ -150,7 +150,10 @@ async def search_slots_full_info(
 
 
 def get_available_slots(slots, date_from, date_to, db):
+    now = datetime.now(timezone('Europe/Moscow'))
     date_from = date_from.astimezone(timezone('Europe/Moscow'))
+    if date_from < now:
+        date_from = now
     date_to = date_to.astimezone(timezone('Europe/Moscow'))
 
     available_slots = []
@@ -158,10 +161,7 @@ def get_available_slots(slots, date_from, date_to, db):
         current_datetime = date_from
         current_datetime = current_datetime.replace(hour=slot.start_time.hour, minute=slot.start_time.minute)
 
-        if current_datetime < date_from or current_datetime < datetime.now(timezone('Europe/Moscow')):
-            current_datetime = current_datetime + timedelta(days=1)
-
-        while current_datetime.weekday() != slot.day_of_week:
+        while current_datetime < date_from or current_datetime < now or current_datetime.weekday() != slot.day_of_week:
             current_datetime = current_datetime + timedelta(days=1)
 
         while current_datetime <= date_to:
@@ -200,11 +200,8 @@ async def search_available_slots(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала поиска не может быть больше времени конца поиска'
         )
-    if filters.date_from < datetime.now(timezone('Europe/Moscow')):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Время начала поиска не может быть меньше текущего времени'
-        )
+    if filters.date_to < datetime.now(timezone('Europe/Moscow')):
+        return []
 
     slots = db.query(Slot)
 
