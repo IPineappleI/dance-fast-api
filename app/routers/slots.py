@@ -1,15 +1,16 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
+from pytz import timezone
 from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import Session
 
-from app.auth.jwt import get_current_teacher, get_current_student, get_current_admin, get_current_user
+from app.auth.jwt import get_current_teacher, get_current_user
 from app.database import get_db
 from app.routers.lessons import get_teacher_parallel_lesson
-from app.models import User, Admin, Teacher, Student, Slot, TeacherLessonType
+from app.models import User, Teacher, Slot, TeacherLessonType
 from app.schemas.slot import *
 
 router = APIRouter(
@@ -19,19 +20,23 @@ router = APIRouter(
 
 
 def check_slot_data(slot_data, teacher_id, db: Session, existing_slot=None):
-    if slot_data.day_of_week and (slot_data.day_of_week < 0 or slot_data.day_of_week > 6):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='День недели должен принимать значения от 0 до 6'
-        )
+    if slot_data.start_time:
+        slot_data.start_time = slot_data.start_time.astimezone(timezone('Europe/Moscow'))
+    if slot_data.end_time:
+        slot_data.end_time = slot_data.end_time.astimezone(timezone('Europe/Moscow'))
 
     start_time = slot_data.start_time if slot_data.start_time else existing_slot.start_time
     end_time = slot_data.end_time if slot_data.end_time else existing_slot.end_time
-
     if start_time >= end_time:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала слота должно быть раньше времени конца слота'
+        )
+
+    if slot_data.day_of_week and (slot_data.day_of_week < 0 or slot_data.day_of_week > 6):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='День недели должен принимать значения от 0 до 6'
         )
 
     existing_slot = db.query(Slot).where(
@@ -75,8 +80,10 @@ async def create_slot(
 
 def apply_filters_to_slots(slots, filters):
     if filters.start_time:
+        filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
         slots = slots.where(Slot.start_time >= filters.start_time)
     if filters.end_time:
+        filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
         slots = slots.where(Slot.end_time <= filters.end_time)
 
     if filters.days_of_week:
@@ -143,12 +150,15 @@ async def search_slots_full_info(
 
 
 def get_available_slots(slots, date_from, date_to, db):
+    date_from = date_from.astimezone(timezone('Europe/Moscow'))
+    date_to = date_to.astimezone(timezone('Europe/Moscow'))
+
     available_slots = []
     for slot in slots:
         current_datetime = date_from
         current_datetime = current_datetime.replace(hour=slot.start_time.hour, minute=slot.start_time.minute)
 
-        if current_datetime < date_from or current_datetime < datetime.now():
+        if current_datetime < date_from or current_datetime < datetime.now(timezone('Europe/Moscow')):
             current_datetime = current_datetime + timedelta(days=1)
 
         while current_datetime.weekday() != slot.day_of_week:
@@ -183,12 +193,14 @@ async def search_available_slots(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
+    filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
+    filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
     if filters.date_from > filters.date_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала поиска не может быть больше времени конца поиска'
         )
-    if filters.date_from < datetime.now():
+    if filters.date_from < datetime.now(timezone('Europe/Moscow')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала поиска не может быть меньше текущего времени'

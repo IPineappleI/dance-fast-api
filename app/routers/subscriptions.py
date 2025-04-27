@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
+from pytz import timezone
 from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -28,7 +29,7 @@ def check_subscription_template(subscription_template):
             detail='Шаблон абонемента не найден'
         )
     if (subscription_template.expiration_date and
-            subscription_template.expiration_date <= datetime.now()):
+            subscription_template.expiration_date <= datetime.now(timezone('Europe/Moscow'))):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Шаблон абонемента не активен'
@@ -59,7 +60,7 @@ def check_subscription(subscription, student_id):
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
         )
-    if subscription.expiration_date and subscription.expiration_date <= datetime.now():
+    if subscription.expiration_date and subscription.expiration_date <= datetime.now(timezone('Europe/Moscow')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Абонемент не активен'
@@ -85,7 +86,8 @@ async def create_subscription(
         )
 
     subscription_template = db.query(SubscriptionTemplate).where(
-        SubscriptionTemplate.id == subscription_data.subscription_template_id).first()
+        SubscriptionTemplate.id == subscription_data.subscription_template_id
+    ).first()
     check_subscription_template(subscription_template)
 
     payment = db.query(Payment).where(Payment.id == subscription_data.payment_id).first()
@@ -98,7 +100,8 @@ async def create_subscription(
     )
 
     if subscription_template.expiration_day_count:
-        subscription.expiration_date = (datetime.now() + timedelta(days=subscription_template.expiration_day_count))
+        subscription.expiration_date = (datetime.now(timezone('Europe/Moscow')) +
+                                        timedelta(days=subscription_template.expiration_day_count))
 
     db.add(subscription)
     db.commit()
@@ -123,7 +126,7 @@ def apply_filters_to_subscriptions(subscriptions, filters):
         subscriptions = subscriptions.where(
             or_(
                 Subscription.expiration_date == None,
-                Subscription.expiration_date > datetime.now()
+                Subscription.expiration_date > datetime.now(timezone('Europe/Moscow'))
             ) != filters.is_expired)
 
     return subscriptions
@@ -287,7 +290,6 @@ async def create_lesson_subscription(
         LessonSubscription.cancelled == False,
         LessonSubscription.lesson_id == lesson.id
     ).first()
-
     if existing_lesson_subscription:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

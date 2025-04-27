@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Настройки JWT авторизации
     SECRET_KEY: Optional[str] = '0192u9041720917409104'
     ALGORITHM: Optional[str] = 'HS256'
-    ACCESS_TOKEN_EXPIRE_MINUTES: Optional[int] = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: Optional[int] = 1440
 
     @field_validator('DATABASE_URL')
     def validate_database_url(cls, v):

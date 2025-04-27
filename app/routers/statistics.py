@@ -25,7 +25,6 @@ async def get_subscription_purchases_statistics(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Дата начала составления выборки не может быть позже даты конца'
         )
-
     if filters.interval_in_days <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

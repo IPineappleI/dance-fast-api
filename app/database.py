@@ -43,6 +43,8 @@ def init_db():
                 # Создаем базу данных
                 cur.execute(f'CREATE DATABASE {DATABASE_NAME}')
                 print(f'База данных {DATABASE_NAME} успешно создана')
+                cur.execute("SET TIMEZONE = 'Europe/Moscow'")
+                print(f'Выставлен московский часовой пояс (+03)')
             else:
                 print(f'База данных {DATABASE_NAME} уже существует')
                 

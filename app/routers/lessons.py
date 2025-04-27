@@ -1,4 +1,5 @@
-from datetime import timezone, timedelta
+from datetime import timedelta
+from pytz import timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -9,9 +10,10 @@ from sqlalchemy.orm import Session
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student, get_current_user
 from app.database import get_db
 from app.routers.classrooms import search_available_classrooms
-from app.models import User, Admin, Teacher, Student, Group, Lesson, LessonType, Classroom
+from app.models import User, Admin, Teacher, Student, Group, Lesson, LessonType, Classroom, Slot
 from app.models import Subscription, SubscriptionTemplate
 from app.models.association import *
+from app.schemas import SlotAvailableFilters
 from app.schemas.lesson import *
 from app.schemas.classroom import *
 
@@ -22,11 +24,19 @@ router = APIRouter(
 
 
 async def check_classroom(classroom_id, start_time, finish_time, are_neighbours_allowed, db: Session):
+    start_time = start_time.astimezone(timezone('Europe/Moscow'))
+    finish_time = finish_time.astimezone(timezone('Europe/Moscow'))
+
     classroom = db.query(Classroom).where(Classroom.id == classroom_id).first()
     if not classroom:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Зал не найден'
+        )
+    if classroom.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Зал не активен'
         )
 
     available_classrooms = await search_available_classrooms(ClassroomAvailableFilters(
@@ -34,20 +44,20 @@ async def check_classroom(classroom_id, start_time, finish_time, are_neighbours_
         date_to=finish_time,
         are_neighbours_allowed=are_neighbours_allowed
     ), db=db)
-
-    if classroom not in available_classrooms:
+    available_classroom_ids = [available_classroom.id for available_classroom in available_classrooms.classrooms]
+    if classroom.id not in available_classroom_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Зал занят'
         )
 
 
-async def check_lesson_data(
-        lesson_data,
-        is_group,
-        db: Session,
-        existing_lesson=None
-):
+async def check_lesson_data(lesson_data, is_group, db: Session, existing_lesson=None):
+    if lesson_data.start_time:
+        lesson_data.start_time = lesson_data.start_time.astimezone(timezone('Europe/Moscow'))
+    if lesson_data.finish_time:
+        lesson_data.finish_time = lesson_data.finish_time.astimezone(timezone('Europe/Moscow'))
+
     start_time = lesson_data.start_time if lesson_data.start_time else existing_lesson.start_time
     finish_time = lesson_data.finish_time if lesson_data.finish_time else existing_lesson.finish_time
     if start_time >= finish_time:
@@ -55,7 +65,7 @@ async def check_lesson_data(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Начало занятия должно быть раньше его конца'
         )
-    if start_time < datetime.now():
+    if not existing_lesson and start_time < datetime.now(timezone('Europe/Moscow')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Запрещено создавать занятия в прошлом'
@@ -83,13 +93,28 @@ async def check_lesson_data(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Выбранный тип занятия является групповым'
             )
+    elif existing_lesson and 'group_id' in lesson_data.model_dump(exclude_unset=True):
+        if existing_lesson.lesson_type.is_group and not lesson_data.group_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='У группового занятия обязательно должна быть группа'
+            )
+        if not existing_lesson.lesson_type.is_group and lesson_data.group_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='У индивидуального занятия не может быть группы'
+            )
 
-    are_neighbours_allowed = lesson_data.are_neighbours_allowed if lesson_data.are_neighbours_allowed is not None \
-        else existing_lesson.are_neighbours_allowed
-    if 'classroom_id' in lesson_data.model_dump(exclude_none=True):
-        await check_classroom(
-            lesson_data.classroom_id, start_time, finish_time, are_neighbours_allowed, db
-        )
+    lesson_data_classroom_check = 'classroom_id' in lesson_data.model_dump(exclude_unset=True)
+
+    classroom_id = lesson_data.classroom_id if lesson_data_classroom_check \
+        else (existing_lesson.classroom_id if existing_lesson else None)
+
+    if classroom_id and (lesson_data_classroom_check or lesson_data.start_time or lesson_data.finish_time):
+        are_neighbours_allowed = lesson_data.are_neighbours_allowed if lesson_data.are_neighbours_allowed is not None \
+            else existing_lesson.are_neighbours_allowed
+
+        await check_classroom(classroom_id, start_time, finish_time, are_neighbours_allowed, db)
 
 
 def get_and_check_group(group_id, db: Session):
@@ -113,7 +138,7 @@ def create_subscription(student_id, lesson_type_id, db: Session):
     ).where(
         or_(
             SubscriptionTemplate.expiration_date == None,
-            SubscriptionTemplate.expiration_date > datetime.now()
+            SubscriptionTemplate.expiration_date > datetime.now(timezone('Europe/Moscow'))
         ),
         SubscriptionLessonType.lesson_type_id == lesson_type_id
     ).order_by(
@@ -132,7 +157,7 @@ def create_subscription(student_id, lesson_type_id, db: Session):
     )
     if subscription_template.expiration_day_count:
         subscription.expiration_date = (
-                datetime.now() + timedelta(days=subscription_template.expiration_day_count)
+                datetime.now(timezone('Europe/Moscow')) + timedelta(days=subscription_template.expiration_day_count)
         )
 
     db.add(subscription)
@@ -141,6 +166,8 @@ def create_subscription(student_id, lesson_type_id, db: Session):
 
 
 def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session):
+    start_time = start_time.astimezone(timezone('Europe/Moscow'))
+    finish_time = finish_time.astimezone(timezone('Europe/Moscow'))
     teacher_parallel_lesson = db.query(Lesson).join(
         TeacherLesson, and_(
             TeacherLesson.teacher_id == teacher_id,
@@ -161,6 +188,8 @@ def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session
 
 
 def get_student_parallel_lesson(student_id, start_time, finish_time, db: Session):
+    start_time = start_time.astimezone(timezone('Europe/Moscow'))
+    finish_time = finish_time.astimezone(timezone('Europe/Moscow'))
     student_parallel_lesson = db.query(Lesson).join(
         LessonSubscription, and_(
             LessonSubscription.lesson_id == Lesson.id,
@@ -187,10 +216,10 @@ async def create_lesson(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    await check_lesson_data(lesson_data, lesson_data.group_id, db)
-
     if lesson_data.group_id:
         get_and_check_group(lesson_data.group_id, db)
+
+    await check_lesson_data(lesson_data, lesson_data.group_id, db)
 
     lesson = Lesson(
         name=lesson_data.name,
@@ -216,8 +245,6 @@ async def create_individual_lesson(
         current_teacher: Teacher = Depends(get_current_teacher),
         db: Session = Depends(get_db)
 ):
-    await check_lesson_data(lesson_data, False, db)
-
     student = db.query(Student).where(Student.id == lesson_data.student_id).first()
     if not student:
         raise HTTPException(
@@ -229,6 +256,8 @@ async def create_individual_lesson(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Аккаунт ученика деактивирован'
         )
+
+    await check_lesson_data(lesson_data, False, db)
 
     subscription = create_subscription(student.id, lesson_data.lesson_type_id, db)
 
@@ -287,14 +316,14 @@ async def create_group_lesson(
         current_teacher: Teacher = Depends(get_current_teacher),
         db: Session = Depends(get_db)
 ):
-    await check_lesson_data(lesson_data, True, db)
-
     group = get_and_check_group(lesson_data.group_id, db)
     if current_teacher not in group.teachers:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Преподаватель не связан с данной группой'
         )
+
+    await check_lesson_data(lesson_data, True, db)
 
     parallel_lesson = get_teacher_parallel_lesson(
         current_teacher.id,
@@ -340,8 +369,6 @@ async def create_lesson_request(
         current_student: Student = Depends(get_current_student),
         db: Session = Depends(get_db)
 ):
-    await check_lesson_data(lesson_data, False, db)
-
     teacher = db.query(Teacher).where(Teacher.id == lesson_data.teacher_id).first()
     if not teacher:
         raise HTTPException(
@@ -354,29 +381,22 @@ async def create_lesson_request(
             detail='Аккаунт преподавателя деактивирован'
         )
 
-    teacher_lesson_type = db.query(TeacherLessonType).where(
-        TeacherLessonType.teacher_id == teacher.id,
-        TeacherLessonType.lesson_type_id == lesson_data.lesson_type_id
-    ).first()
-    if not teacher_lesson_type:
+    await check_lesson_data(lesson_data, False, db)
+
+    slots = await search_available_slots(SlotAvailableFilters(
+        date_from=lesson_data.start_time,
+        date_to=lesson_data.finish_time,
+        teacher_ids=[teacher.id],
+        lesson_type_ids=[lesson_data.lesson_type_id]
+    ), current_student.user, db)
+    if (len(slots) != 1 or
+            lesson_data.start_time < slots[0].start_time or lesson_data.finish_time > slots[0].finish_time):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Учитель не преподаёт данный вид занятий'
+            detail='У учителя нет подходящего слота, или учитель не преподаёт данный вид занятий'
         )
 
     subscription = create_subscription(current_student.id, lesson_data.lesson_type_id, db)
-
-    parallel_lesson = get_teacher_parallel_lesson(
-        teacher.id,
-        lesson_data.start_time,
-        lesson_data.finish_time,
-        db
-    )
-    if parallel_lesson:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Преподаватель уже связан с пересекающимся по времени занятием'
-        )
 
     parallel_student_lesson = get_student_parallel_lesson(
         current_student.id, lesson_data.start_time, lesson_data.finish_time, db
@@ -467,8 +487,10 @@ async def respond_to_lesson_request(
 
 def apply_filters_to_lessons(lessons, filters):
     if filters.date_from:
+        filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
         lessons = lessons.where(Lesson.start_time >= filters.date_from)
     if filters.date_to:
+        filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
         lessons = lessons.where(Lesson.finish_time <= filters.date_to)
 
     if filters.is_confirmed is not None:
@@ -679,15 +701,13 @@ async def patch_lesson(
             detail='Занятие не найдено'
         )
 
-    await check_lesson_data(lesson_data, lesson_data.group_id or lesson.group_id, db, existing_lesson=lesson)
-
     if lesson_data.group_id:
         get_and_check_group(lesson_data.group_id, db)
-    elif 'group_id' in lesson_data:
-        lesson.group_id = None
 
-    if 'classroom_id' in lesson_data and lesson_data.classroom_id is None:
-        lesson.classroom_id = None
+    group_id = lesson_data.group_id if 'group_id' in lesson_data.model_dump(exclude_unset=True) \
+        else lesson.group_id
+
+    await check_lesson_data(lesson_data, group_id, db, existing_lesson=lesson)
 
     for field, value in lesson_data.model_dump(exclude_unset=True).items():
         setattr(lesson, field, value)
@@ -696,3 +716,6 @@ async def patch_lesson(
     db.refresh(lesson)
 
     return lesson
+
+
+from app.routers.slots import search_available_slots

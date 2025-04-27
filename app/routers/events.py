@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
+from pytz import timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -24,7 +25,8 @@ async def create_event(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    if event_data.start_time <= datetime.now():
+    event_data.start_time = event_data.start_time.astimezone(timezone('Europe/Moscow'))
+    if event_data.start_time <= datetime.now(timezone('Europe/Moscow')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Мероприятие должно начинаться в будущем'
@@ -59,8 +61,10 @@ async def create_event(
 
 def apply_filters_to_events(events, filters):
     if filters.date_from:
+        filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
         events = events.where(Event.start_time >= filters.date_from)
     if filters.date_to:
+        filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
         events = events.where(Event.start_time <= filters.date_to)
 
     if filters.search_string:
@@ -164,11 +168,8 @@ async def patch_event(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Мероприятие не найдено'
         )
-    if event_data.start_time and event_data.start_time <= datetime.now():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Мероприятие должно начинаться в будущем'
-        )
+    if event_data.start_time:
+        event_data.start_time = event_data.start_time.astimezone(timezone('Europe/Moscow'))
 
     if event_data.event_type_id:
         event_type = db.query(EventType).where(EventType.id == event_data.event_type_id).first()

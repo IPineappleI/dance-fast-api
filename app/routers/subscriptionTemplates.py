@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
+from pytz import timezone
 from sqlalchemy import exists, and_, or_, text
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,10 @@ def check_subscription_template(subscription_template_data):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Стоимость шаблона абонемента должна быть неотрицательной'
+        )
+    if subscription_template_data.expiration_date:
+        subscription_template_data.expiration_date = (
+            subscription_template_data.expiration_date.astimezone(timezone('Europe/Moscow'))
         )
 
 
@@ -85,7 +90,7 @@ def apply_filters_to_subscription_templates(subscription_templates, filters, db:
         subscription_templates = subscription_templates.where(
             or_(
                 SubscriptionTemplate.expiration_date == None,
-                SubscriptionTemplate.expiration_date > datetime.now()
+                SubscriptionTemplate.expiration_date > datetime.now(timezone('Europe/Moscow'))
             ) != filters.is_expired)
 
     return subscription_templates

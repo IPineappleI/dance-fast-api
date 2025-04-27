@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
+from pytz import timezone
 from sqlalchemy import exists, or_, text
 from sqlalchemy.orm import Session
 
@@ -166,7 +167,7 @@ def check_student_can_join_group(student, group, db):
         Subscription.student_id == student.id,
         or_(
             Subscription.expiration_date == None,
-            Subscription.expiration_date > datetime.now()
+            Subscription.expiration_date > datetime.now(timezone('Europe/Moscow'))
         ),
         Payment.terminated == False
     ).all()
@@ -174,7 +175,7 @@ def check_student_can_join_group(student, group, db):
 
     lessons_check = db.query(Lesson).where(exists().where(
         Lesson.group_id == group.id,
-        Lesson.start_time > datetime.now(),
+        Lesson.start_time > datetime.now(timezone('Europe/Moscow')),
         ~Lesson.lesson_type_id.in_(lesson_type_ids),
         Lesson.terminated == False,
         Lesson.is_confirmed == True

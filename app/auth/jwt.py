@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional
 
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from pytz import timezone
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -24,14 +25,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    '''Создает JWT токен доступа.'''
+    """Создает JWT токен доступа."""
     to_encode = data.copy()
 
     # Устанавливаем время истечения срока действия токена
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.now(timezone('Europe/Moscow')) + expires_delta
     else:
-        expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone('Europe/Moscow')) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({'exp': expire})
 
@@ -41,7 +42,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def verify_token(token: str, credentials_exception: HTTPException) -> TokenData:
-    '''Проверяет JWT токен и возвращает данные пользователя.'''
+    """Проверяет JWT токен и возвращает данные пользователя."""
     try:
         # Декодируем JWT токен
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -62,7 +63,7 @@ async def get_current_user(
         token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ):
-    '''Получает текущего пользователя по токену.'''
+    """Получает текущего пользователя по токену."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail='Невалидные учетные данные',
@@ -91,7 +92,7 @@ async def get_current_admin(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    '''Проверяет, что текущий пользователь является администратором.'''
+    """Проверяет, что текущий пользователь является администратором."""
     admin = db.query(Admin).where(Admin.user_id == current_user.id).first()
     if admin is None:
         raise HTTPException(
@@ -105,7 +106,7 @@ async def get_current_teacher(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    '''Проверяет, что текущий пользователь является администратором.'''
+    """Проверяет, что текущий пользователь является преподавателем."""
     teacher = db.query(Teacher).where(Teacher.user_id == current_user.id).first()
     if teacher is None:
         raise HTTPException(
@@ -119,7 +120,7 @@ async def get_current_student(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    '''Проверяет, что текущий пользователь является администратором.'''
+    """Проверяет, что текущий пользователь является учеником."""
     student = db.query(Student).where(Student.user_id == current_user.id).first()
     if student is None:
         raise HTTPException(
