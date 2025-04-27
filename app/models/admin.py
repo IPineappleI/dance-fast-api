@@ -1,13 +1,12 @@
-from sqlalchemy import Column, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 
-from app.models.base import BaseModel
+from app.models.base import *
 
 
 class Admin(BaseModel):
-    __tablename__ = "admins"
+    __tablename__ = 'admins'
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False, unique=True)
 
-    user = relationship("User", uselist=False, back_populates="admin")
+    user = relationship('User', uselist=False, back_populates='admin')

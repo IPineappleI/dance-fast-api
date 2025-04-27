@@ -5,9 +5,9 @@ from app.models.base import BaseModel
 
 
 class PaymentType(BaseModel):
-    __tablename__ = "payment_types"
+    __tablename__ = 'payment_types'
 
     name = Column(String, nullable=False, unique=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    payments = relationship("Payment", uselist=True, back_populates="payment_type")
+    payments = relationship('Payment', uselist=True, back_populates='payment_type')

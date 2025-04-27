@@ -7,7 +7,7 @@ import uuid
 from app.schemas.danceStyle import DanceStyleInfo
 
 
-class LessonTypeBase(BaseModel):
+class LessonTypeCreate(BaseModel):
     dance_style_id: uuid.UUID
     is_group: bool
 
@@ -15,7 +15,7 @@ class LessonTypeBase(BaseModel):
         from_attributes = True
 
 
-class LessonTypeInfo(LessonTypeBase):
+class LessonTypeInfo(LessonTypeCreate):
     id: uuid.UUID
     created_at: datetime
     terminated: bool
@@ -31,8 +31,24 @@ class LessonTypeFullInfo(LessonTypeInfo):
         from_attributes = True
 
 
-class LessonTypeUpdate(BaseModel):
-    dance_style_id: Optional[uuid.UUID] = None
+class LessonTypePage(BaseModel):
+    lesson_types: List[LessonTypeInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class LessonTypeFullInfoPage(BaseModel):
+    lesson_types: List[LessonTypeFullInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class LessonTypeFilters(BaseModel):
+    dance_style_ids: Optional[List[uuid.UUID]] = None
     is_group: Optional[bool] = None
     terminated: Optional[bool] = None
 
@@ -40,8 +56,8 @@ class LessonTypeUpdate(BaseModel):
         from_attributes = True
 
 
-class LessonTypeSearch(BaseModel):
-    dance_style_ids: Optional[List[uuid.UUID]] = None
+class LessonTypeUpdate(BaseModel):
+    dance_style_id: Optional[uuid.UUID] = None
     is_group: Optional[bool] = None
     terminated: Optional[bool] = None
 

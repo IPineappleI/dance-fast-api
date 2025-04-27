@@ -3,19 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import engine, Base, init_db
-from app.routers import users, auth, events, eventTypes, classrooms, subscriptionTemplates, paymentTypes, payments, \
+from app.routers import auth, events, eventTypes, classrooms, subscriptionTemplates, paymentTypes, payments, \
     subscriptions, slots, students, levels, teachers, lessonTypes, groups, admins, lessons, test, danceStyles, \
     statistics
 import os
 
 
-print("Запуск приложения...")
-print(f"DATABASE_URL в окружении: {os.getenv('DATABASE_URL')}")
+print('Запуск приложения...')
+print(f'DATABASE_URL в окружении: {os.getenv('DATABASE_URL')}')
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Запуск события startup")
+    print('Запуск события startup')
     try:
         # Создаем базу данных, если её нет
         init_db()
@@ -24,25 +24,25 @@ async def lifespan(app: FastAPI):
         # Base.metadata создаёт все таблицы из моделей, которые наследуются от Base
         Base.metadata.create_all(bind=engine)
     except Exception as e:
-        print(f"Ошибка при инициализации: {e}")
+        print(f'Ошибка при инициализации: {e}')
     yield
-    print("Завершение работы приложения")
+    print('Завершение работы приложения')
 
 
 app = FastAPI(
-    title="Dance Studio API",
-    description="API для клиент-серверного приложения школы танцев",
-    version="0.2.0",
+    title='Dance Studio API',
+    description='API для клиент-серверного приложения школы танцев',
+    version='0.2.0',
     lifespan=lifespan
 )
 
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 # Подключение роутеров
@@ -65,12 +65,11 @@ app.include_router(subscriptions.router)
 app.include_router(subscriptionTemplates.router)
 app.include_router(teachers.router)
 app.include_router(test.router)
-app.include_router(users.router)
 
 
-@app.get("/")
+@app.get('/')
 async def root():
     return {
-        "message": "Добро пожаловать в API для школы танцев!",
-        "docs": "/docs"
+        'message': 'Добро пожаловать в API для школы танцев!',
+        'docs': '/docs'
     }

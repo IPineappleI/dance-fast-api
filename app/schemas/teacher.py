@@ -1,22 +1,16 @@
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from app.schemas.group import GroupMoreInfo
 from app.schemas.lessonType import LessonTypeFullInfo
-from app.schemas.user import UserBase, UserUpdate, UserCreate
+from app.schemas.user import UserInfo, UserUpdate, UserCreate, UserFilters
 
 
-class TeacherBase(BaseModel):
-    user_id: uuid.UUID
-
-    class Config:
-        from_attributes = True
-
-
-class TeacherInfo(TeacherBase):
+class TeacherInfo(BaseModel):
     id: uuid.UUID
+    user_id: uuid.UUID
     created_at: datetime
 
     class Config:
@@ -24,7 +18,7 @@ class TeacherInfo(TeacherBase):
 
 
 class TeacherMoreInfo(TeacherInfo):
-    user: UserBase
+    user: UserInfo
     lesson_types: List[LessonTypeFullInfo]
 
     class Config:
@@ -45,11 +39,35 @@ class TeacherFullInfoWithRole(TeacherFullInfo):
         from_attributes = True
 
 
-class TeacherUpdate(UserUpdate):
+class TeacherPage(BaseModel):
+    teachers: List[TeacherInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class TeacherFullInfoPage(BaseModel):
+    teachers: List[TeacherFullInfo]
+    total: int
+
     class Config:
         from_attributes = True
 
 
 class TeacherCreate(UserCreate):
+    class Config:
+        from_attributes = True
+
+
+class TeacherFilters(UserFilters):
+    group_ids: Optional[List[uuid.UUID]] = None
+    lesson_type_ids: Optional[List[uuid.UUID]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TeacherUpdate(UserUpdate):
     class Config:
         from_attributes = True

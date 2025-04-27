@@ -1,21 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session, Query
-from typing import List
-from datetime import datetime, timezone, timedelta
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import AfterValidator
+from sqlalchemy import and_, or_, text
+from sqlalchemy.orm import Session
+from datetime import timedelta
 
 from app.auth.jwt import get_current_student, get_current_admin, get_current_user
 from app.database import get_db
-from app import models, schemas
+from app.routers.lessons import get_student_parallel_lesson
+from app.models import User, Admin, Student, Subscription, SubscriptionTemplate, Payment, Lesson, LessonSubscription
+from app.schemas.subscription import *
+from app.schemas import LessonFullInfo
 
 import uuid
 
-from app.routers.lessons import get_student_parallel_lesson
-
 router = APIRouter(
-    prefix="/subscriptions",
-    tags=["subscriptions"],
-    responses={404: {"description": "Абонемент не найден"}}
+    prefix='/subscriptions',
+    tags=['subscriptions']
 )
 
 
@@ -23,13 +25,13 @@ def check_subscription_template(subscription_template):
     if not subscription_template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Шаблон абонемента не найден"
+            detail='Шаблон абонемента не найден'
         )
     if (subscription_template.expiration_date and
-            subscription_template.expiration_date <= datetime.now(timezone.utc)):
+            subscription_template.expiration_date <= datetime.now()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Шаблон абонемента не активен"
+            detail='Шаблон абонемента не активен'
         )
 
 
@@ -37,12 +39,12 @@ def check_payment(payment):
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Платёж не найден"
+            detail='Платёж не найден'
         )
     if payment.terminated:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Платёж отменён"
+            detail='Платёж отменён'
         )
 
 
@@ -50,54 +52,53 @@ def check_subscription(subscription, student_id):
     if not subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Абонемент не найден"
+            detail='Абонемент не найден'
         )
     if subscription.student_id != student_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав"
+            detail='Недостаточно прав'
         )
-    if subscription.expiration_date and subscription.expiration_date <= datetime.now(timezone.utc):
+    if subscription.expiration_date and subscription.expiration_date <= datetime.now():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Абонемент не активен"
+            detail='Абонемент не активен'
         )
 
 
-@router.post("/", response_model=schemas.SubscriptionInfo, status_code=status.HTTP_201_CREATED)
+@router.post('/', response_model=SubscriptionInfo, status_code=status.HTTP_201_CREATED)
 async def create_subscription(
-        subscription_data: schemas.SubscriptionCreate,
-        current_student: models.Student = Depends(get_current_student),
+        subscription_data: SubscriptionCreate,
+        current_student: Student = Depends(get_current_student),
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).filter(models.Student.id == subscription_data.student_id).first()
+    student = db.query(Student).where(Student.id == subscription_data.student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ученик не найден"
+            detail='Ученик не найден'
         )
     if student.id != current_student.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав"
+            detail='Недостаточно прав'
         )
 
-    subscription_template = db.query(models.SubscriptionTemplate).filter(
-        models.SubscriptionTemplate.id == subscription_data.subscription_template_id).first()
+    subscription_template = db.query(SubscriptionTemplate).where(
+        SubscriptionTemplate.id == subscription_data.subscription_template_id).first()
     check_subscription_template(subscription_template)
 
-    payment = db.query(models.Payment).filter(models.Payment.id == subscription_data.payment_id).first()
+    payment = db.query(Payment).where(Payment.id == subscription_data.payment_id).first()
     check_payment(payment)
 
-    subscription = models.Subscription(
+    subscription = Subscription(
         student_id=student.id,
         subscription_template_id=subscription_template.id,
         payment_id=payment.id
     )
 
     if subscription_template.expiration_day_count:
-        subscription.expiration_date = (datetime.now(timezone.utc) +
-                                        timedelta(days=subscription_template.expiration_day_count))
+        subscription.expiration_date = (datetime.now() + timedelta(days=subscription_template.expiration_day_count))
 
     db.add(subscription)
     db.commit()
@@ -106,97 +107,126 @@ async def create_subscription(
     return subscription
 
 
-def apply_filters_to_subscriptions(subscriptions: Query, filters):
+def apply_filters_to_subscriptions(subscriptions, filters):
     if filters.student_id:
-        subscriptions = subscriptions.filter(models.Subscription.student_id == filters.student_id)
-    if type(filters.is_paid) is bool:
-        subscriptions = subscriptions.filter((models.Subscription.payment_id != None) == filters.is_paid)
-    if type(filters.is_expired) is bool:
-        subscriptions = subscriptions.filter(or_(
-            models.Subscription.expiration_date == None,
-            models.Subscription.expiration_date > datetime.now(timezone.utc)) != filters.is_expired
+        subscriptions = subscriptions.where(Subscription.student_id == filters.student_id)
+
+    if filters.subscription_template_ids:
+        subscriptions = subscriptions.where(
+            Subscription.subscription_template_id.in_(filters.subscription_template_ids)
         )
+
+    if filters.is_paid is not None:
+        subscriptions = subscriptions.where((Subscription.payment_id != None) == filters.is_paid)
+
+    if filters.is_expired is not None:
+        subscriptions = subscriptions.where(
+            or_(
+                Subscription.expiration_date == None,
+                Subscription.expiration_date > datetime.now()
+            ) != filters.is_expired)
+
     return subscriptions
 
 
-@router.post("/search", response_model=List[schemas.SubscriptionInfo])
+def check_order_by(order_by: str) -> str:
+    assert order_by in ['expiration_date', 'created_at'], \
+        'Данная сортировка невозможна'
+    return order_by
+
+
+@router.post('/search', response_model=SubscriptionPage)
 async def search_subscriptions(
-        filters: schemas.SubscriptionSearch,
-        skip: int = 0, limit: int = 100,
-        current_user: models.User = Depends(get_current_user),
+        filters: SubscriptionFilters,
+        order_by: Annotated[str, AfterValidator(check_order_by)] = 'created_at',
+        desc: bool = True,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(gt=0, le=100)] = 20,
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    subscriptions = db.query(models.Subscription)
+    subscriptions = db.query(Subscription)
     subscriptions = apply_filters_to_subscriptions(subscriptions, filters)
-    subscriptions = subscriptions.offset(skip).limit(limit).all()
-    return subscriptions
+    return SubscriptionPage(
+        subscriptions=subscriptions.order_by(
+            text('subscriptions.' + order_by + (' DESC' if desc else ''))
+        ).offset(offset).limit(limit).all(),
+        total=subscriptions.count()
+    )
 
 
-@router.post("/search/full-info", response_model=List[schemas.SubscriptionFullInfo])
+@router.post('/search/full-info', response_model=SubscriptionFullInfoPage)
 async def search_subscriptions_full_info(
-        filters: schemas.SubscriptionSearch,
-        skip: int = 0, limit: int = 100,
-        current_user: models.User = Depends(get_current_user),
+        filters: SubscriptionFilters,
+        order_by: Annotated[str, AfterValidator(check_order_by)] = 'created_at',
+        desc: bool = True,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(gt=0, le=100)] = 20,
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    subscriptions = db.query(models.Subscription)
+    subscriptions = db.query(Subscription)
     subscriptions = apply_filters_to_subscriptions(subscriptions, filters)
-    subscriptions = subscriptions.offset(skip).limit(limit).all()
-    return subscriptions
+    return SubscriptionFullInfoPage(
+        subscriptions=subscriptions.order_by(
+            text('subscriptions.' + order_by + (' DESC' if desc else ''))
+        ).offset(offset).limit(limit).all(),
+        total=subscriptions.count()
+    )
 
 
-@router.get("/{subscription_id}", response_model=schemas.SubscriptionInfo)
+@router.get('/{subscription_id}', response_model=SubscriptionInfo)
 async def get_subscription_by_id(
         subscription_id: uuid.UUID,
-        current_user: models.User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
     if subscription is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Абонемент не найден"
+            detail='Абонемент не найден'
         )
     return subscription
 
 
-@router.get("/full-info/{subscription_id}", response_model=schemas.SubscriptionFullInfo)
+@router.get('/full-info/{subscription_id}', response_model=SubscriptionFullInfo)
 async def get_subscription_full_info_by_id(
         subscription_id: uuid.UUID,
-        current_user: models.User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
     if subscription is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Абонемент не найден"
+            detail='Абонемент не найден'
         )
     return subscription
 
 
-@router.patch("/{subscription_id}", response_model=schemas.SubscriptionFullInfo, status_code=status.HTTP_200_OK)
+@router.patch('/{subscription_id}', response_model=SubscriptionFullInfo)
 async def patch_subscription(
         subscription_id: uuid.UUID,
-        subscription_data: schemas.SubscriptionUpdate,
-        current_admin: models.Admin = Depends(get_current_admin),
+        subscription_data: SubscriptionUpdate,
+        current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
     if not subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Абонемент не найден"
+            detail='Абонемент не найден'
         )
 
     if subscription_data.subscription_template_id:
-        subscription_template = db.query(models.SubscriptionTemplate).filter(
-            models.SubscriptionTemplate.id == subscription_data.subscription_template_id
+        subscription_template = db.query(SubscriptionTemplate).where(
+            SubscriptionTemplate.id == subscription_data.subscription_template_id
         ).first()
         check_subscription_template(subscription_template)
 
     if subscription_data.payment_id:
-        payment = db.query(models.Payment).filter(models.Payment.id == subscription_data.payment_id).first()
+        payment = db.query(Payment).where(Payment.id == subscription_data.payment_id).first()
         check_payment(payment)
 
     for field, value in subscription_data.model_dump(exclude_unset=True).items():
@@ -208,60 +238,60 @@ async def patch_subscription(
     return subscription
 
 
-@router.post("/lessons/{subscription_id}/{lesson_id}", response_model=schemas.LessonFullInfo,
+@router.post('/lessons/{subscription_id}/{lesson_id}', response_model=LessonFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_lesson_subscription(
         subscription_id: uuid.UUID,
         lesson_id: uuid.UUID,
-        current_student: models.Student = Depends(get_current_student),
+        current_student: Student = Depends(get_current_student),
         db: Session = Depends(get_db)
 ):
-    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
     check_subscription(subscription, current_student.id)
     if subscription.lessons_left <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="В абонементе не осталось занятий"
+            detail='В абонементе не осталось занятий'
         )
 
-    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    lesson = db.query(Lesson).where(Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Занятие не найдено"
+            detail='Занятие не найдено'
         )
     if lesson.terminated:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Занятие отменено"
+            detail='Занятие отменено'
         )
 
     if lesson.lesson_type not in subscription.subscription_template.lesson_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Данный абонемент не подходит для этого занятия"
+            detail='Данный абонемент не подходит для этого занятия'
         )
 
     if lesson.group_id and subscription.student not in lesson.group.students:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ученик не является членом группы"
+            detail='Ученик не является членом группы'
         )
 
-    existing_lesson_subscription = db.query(models.LessonSubscription).join(
-        models.Subscription, and_(
-            models.Subscription.id == models.LessonSubscription.subscription_id,
-            models.Subscription.student_id == subscription.student_id
+    existing_lesson_subscription = db.query(LessonSubscription).join(
+        Subscription, and_(
+            Subscription.id == LessonSubscription.subscription_id,
+            Subscription.student_id == subscription.student_id
         )
-    ).filter(
-        models.LessonSubscription.cancelled == False,
-        models.LessonSubscription.lesson_id == lesson.id
+    ).where(
+        LessonSubscription.cancelled == False,
+        LessonSubscription.lesson_id == lesson.id
     ).first()
 
     if existing_lesson_subscription:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ученик уже записан на это занятие"
+            detail='Ученик уже записан на это занятие'
         )
 
     parallel_student_lesson = get_student_parallel_lesson(
@@ -270,10 +300,10 @@ async def create_lesson_subscription(
     if parallel_student_lesson:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ученик уже записан на пересекающееся по времени занятие"
+            detail='Ученик уже записан на пересекающееся по времени занятие'
         )
 
-    lesson_subscription = models.LessonSubscription(
+    lesson_subscription = LessonSubscription(
         subscription_id=subscription_id,
         lesson_id=lesson_id
     )
@@ -285,33 +315,33 @@ async def create_lesson_subscription(
     return lesson
 
 
-@router.patch("/lessons/cancel/{subscription_id}/{lesson_id}",
-              response_model=schemas.SubscriptionFullInfo,
+@router.patch('/lessons/cancel/{subscription_id}/{lesson_id}',
+              response_model=SubscriptionFullInfo,
               status_code=status.HTTP_200_OK)
-async def cancel_subscription_use(
+async def cancel_lesson_subscription(
         subscription_id: uuid.UUID,
         lesson_id: uuid.UUID,
-        current_student: models.Student = Depends(get_current_student),
+        current_student: Student = Depends(get_current_student),
         db: Session = Depends(get_db)
 ):
-    subscription = db.query(models.Subscription).filter(models.Subscription.id == subscription_id).first()
+    subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
     check_subscription(subscription, current_student.id)
 
-    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    lesson = db.query(Lesson).where(Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Занятие не найдено"
+            detail='Занятие не найдено'
         )
 
-    lesson_subscription = db.query(models.LessonSubscription).filter(
-        models.LessonSubscription.subscription_id == subscription.id,
-        models.LessonSubscription.lesson_id == lesson.id,
+    lesson_subscription = db.query(LessonSubscription).where(
+        LessonSubscription.subscription_id == subscription.id,
+        LessonSubscription.lesson_id == lesson.id,
     ).first()
     if not lesson_subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Абонемент не связан с данным занятием"
+            detail='Абонемент не связан с данным занятием'
         )
 
     lesson_subscription.cancelled = True

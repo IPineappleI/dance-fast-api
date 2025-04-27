@@ -12,7 +12,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-class LessonBase(BaseModel):
+class LessonCreate(BaseModel):
     name: str
     description: Optional[str] = None
     lesson_type_id: uuid.UUID
@@ -27,7 +27,7 @@ class LessonBase(BaseModel):
         from_attributes = True
 
 
-class LessonIndividual(BaseModel):
+class LessonCreateIndividual(BaseModel):
     name: str
     description: Optional[str] = None
     lesson_type_id: uuid.UUID
@@ -41,7 +41,7 @@ class LessonIndividual(BaseModel):
         from_attributes = True
 
 
-class LessonGroup(BaseModel):
+class LessonCreateGroup(BaseModel):
     name: str
     description: Optional[str] = None
     lesson_type_id: uuid.UUID
@@ -55,7 +55,7 @@ class LessonGroup(BaseModel):
         from_attributes = True
 
 
-class LessonRequest(BaseModel):
+class LessonCreateRequest(BaseModel):
     name: str
     description: Optional[str] = None
     lesson_type_id: uuid.UUID
@@ -76,7 +76,7 @@ class LessonResponse(BaseModel):
         from_attributes = True
 
 
-class LessonInfo(LessonBase):
+class LessonInfo(LessonCreate):
     id: uuid.UUID
     created_at: datetime
     terminated: bool
@@ -97,7 +97,38 @@ class LessonFullInfo(LessonInfo):
         from_attributes = True
 
 
-class LessonSearch(BaseModel):
+class LessonWithSubscriptions(LessonFullInfo):
+    subscriptions: List[SubscriptionFullInfo]
+
+    class Config:
+        from_attributes = True
+
+
+class LessonPage(BaseModel):
+    lessons: List[LessonInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class LessonFullInfoPage(BaseModel):
+    lessons: List[LessonFullInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class LessonWithSubscriptionsPage(BaseModel):
+    lessons: List[LessonWithSubscriptions]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class LessonFilters(BaseModel):
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
     is_confirmed: Optional[bool] = None
@@ -113,13 +144,6 @@ class LessonSearch(BaseModel):
     subscription_template_ids: Optional[List[uuid.UUID]] = None
     level_ids: Optional[List[uuid.UUID]] = None
     group_ids: Optional[List[uuid.UUID]] = None
-
-    class Config:
-        from_attributes = True
-
-
-class LessonWithSubscription(LessonFullInfo):
-    subscriptions: List[SubscriptionFullInfo]
 
     class Config:
         from_attributes = True

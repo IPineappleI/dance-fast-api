@@ -1,51 +1,91 @@
-import uuid
-from datetime import timezone, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from sqlalchemy import exists, or_
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
+from pydantic import AfterValidator
+from sqlalchemy import exists, or_, text
 from sqlalchemy.orm import Session
-from typing import List
 
-from app.auth.jwt import get_current_admin, get_current_user, get_current_student
+from app.auth.jwt import get_current_user, get_current_student
 from app.database import get_db
-from app import models, schemas
-from app.routers.users import patch_user
-
+from app.routers.auth import patch_user
+from app.models import User, Admin, Student, Level, Group, Lesson, LessonType, \
+    Subscription, SubscriptionTemplate, Payment
+from app.models.association import *
+from app.schemas.student import *
 
 router = APIRouter(
     prefix='/students',
-    tags=['students'],
-    responses={404: {'description': 'Ученик не найден'}, 204: {'description': 'Связь уже удалена'}}
+    tags=['students']
 )
 
 
-@router.get('/', response_model=List[schemas.StudentInfo])
-async def get_students(
-        skip: int = 0, limit: int = 100,
-        current_admin: models.Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
-):
-    students = db.query(models.Student).offset(skip).limit(limit).all()
+def apply_filters_to_students(students, filters):
+    if filters.level_ids:
+        students = students.where(Student.level_id.in_(filters.level_ids))
+
+    if filters.group_ids:
+        students = students.join(StudentGroup, Student.id == StudentGroup.student_id).where(
+            StudentGroup.group_id.in_(filters.group_ids))
+
+    if filters.terminated is not None:
+        students = students.join(User).where(User.terminated == filters.terminated)
+
     return students
 
 
-@router.get('/full-info', response_model=List[schemas.StudentFullInfo])
-async def get_students_full_info(
-        skip: int = 0, limit: int = 100,
-        #current_admin: models.Admin = Depends(get_current_admin),
+def check_order_by(order_by: str) -> str:
+    assert order_by in ['created_at'], \
+        'Данная сортировка невозможна'
+    return order_by
+
+
+@router.post('/search', response_model=StudentPage)
+async def search_students(
+        filters: StudentFilters,
+        order_by: Annotated[str, AfterValidator(check_order_by)] = 'created_at',
+        desc: bool = True,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(gt=0, le=100)] = 20,
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    students = db.query(models.Student).offset(skip).limit(limit).all()
-    return students
+    students = db.query(Student)
+    students = apply_filters_to_students(students, filters)
+    return StudentPage(
+        students=students.order_by(
+            text('students.' + order_by + (' DESC' if desc else ''))
+        ).offset(offset).limit(limit).all(),
+        total=students.count()
+    )
 
 
-@router.get('/{student_id}', response_model=schemas.StudentInfo)
+@router.post('/search/full-info', response_model=StudentFullInfoPage)
+async def search_students_full_info(
+        filters: StudentFilters,
+        order_by: Annotated[str, AfterValidator(check_order_by)] = 'created_at',
+        desc: bool = True,
+        offset: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(gt=0, le=100)] = 20,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    students = db.query(Student)
+    students = apply_filters_to_students(students, filters)
+    return StudentFullInfoPage(
+        students=students.order_by(
+            text('students.' + order_by + (' DESC' if desc else ''))
+        ).offset(offset).limit(limit).all(),
+        total=students.count()
+    )
+
+
+@router.get('/{student_id}', response_model=StudentInfo)
 async def get_student_by_id(
         student_id: uuid.UUID,
-        current_user: models.User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).where(models.Student.id == student_id).first()
+    student = db.query(Student).where(Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -54,13 +94,13 @@ async def get_student_by_id(
     return student
 
 
-@router.get('/full-info/{student_id}', response_model=schemas.StudentFullInfo)
+@router.get('/full-info/{student_id}', response_model=StudentFullInfo)
 async def get_student_full_info_by_id(
         student_id: uuid.UUID,
-        current_user: models.User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).where(models.Student.id == student_id).first()
+    student = db.query(Student).where(Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -69,14 +109,14 @@ async def get_student_full_info_by_id(
     return student
 
 
-@router.patch('/{student_id}', response_model=schemas.StudentFullInfo, status_code=status.HTTP_200_OK)
+@router.patch('/{student_id}', response_model=StudentFullInfo)
 async def patch_student(
         student_id: uuid.UUID,
-        student_data: schemas.StudentUpdate,
-        current_user: models.User = Depends(get_current_user),
+        student_data: StudentUpdate,
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).where(models.Student.id == student_id).first()
+    student = db.query(Student).where(Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -89,7 +129,7 @@ async def patch_student(
         )
 
     if student_data.level_id:
-        level = db.query(models.Level).where(models.Level.id == student_data.level_id).first()
+        level = db.query(Level).where(Level.id == student_data.level_id).first()
         if not level:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -104,7 +144,7 @@ async def patch_student(
         student_data.level_id = None
 
     if student_data.terminated:
-        db.query(models.StudentGroup).where(models.StudentGroup.student_id == student_id).delete()
+        db.query(StudentGroup).where(StudentGroup.student_id == student_id).delete()
 
     patch_user(student.user_id, student_data, db)
 
@@ -113,15 +153,48 @@ async def patch_student(
     return student
 
 
-@router.post('/groups/{student_id}/{group_id}', response_model=schemas.StudentFullInfo,
+def check_student_can_join_group(student, group, db):
+    lesson_type_ids = db.query(LessonType.id).join(
+        SubscriptionLessonType
+    ).join(
+        SubscriptionTemplate
+    ).join(
+        Subscription
+    ).join(
+        Payment
+    ).where(
+        Subscription.student_id == student.id,
+        or_(
+            Subscription.expiration_date == None,
+            Subscription.expiration_date > datetime.now()
+        ),
+        Payment.terminated == False
+    ).all()
+    lesson_type_ids = [lesson_type_id.id for lesson_type_id in lesson_type_ids]
+
+    lessons_check = db.query(Lesson).where(exists().where(
+        Lesson.group_id == group.id,
+        Lesson.start_time > datetime.now(),
+        ~Lesson.lesson_type_id.in_(lesson_type_ids),
+        Lesson.terminated == False,
+        Lesson.is_confirmed == True
+    )).first()
+    if lessons_check:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Для вступления в группу у ученика должны быть абонементы, подходящие для всех занятий группы'
+        )
+
+
+@router.post('/groups/{student_id}/{group_id}', response_model=StudentFullInfo,
              status_code=status.HTTP_201_CREATED)
 async def create_student_group(
         student_id: uuid.UUID,
         group_id: uuid.UUID,
-        current_student: models.Student = Depends(get_current_student),
+        current_student: Student = Depends(get_current_student),
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).where(models.Student.id == student_id).first()
+    student = db.query(Student).where(Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -133,7 +206,7 @@ async def create_student_group(
             detail='Недостаточно прав'
         )
 
-    group = db.query(models.Group).where(models.Group.id == group_id).first()
+    group = db.query(Group).where(Group.id == group_id).first()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,9 +223,9 @@ async def create_student_group(
             detail='В группе нет свободных мест'
         )
 
-    existing_group = db.query(models.StudentGroup).where(
-        models.StudentGroup.student_id == student_id,
-        models.StudentGroup.group_id == group_id
+    existing_group = db.query(StudentGroup).where(
+        StudentGroup.student_id == student_id,
+        StudentGroup.group_id == group_id
     ).first()
     if existing_group:
         raise HTTPException(
@@ -160,38 +233,9 @@ async def create_student_group(
             detail='Ученик уже связан с этой группой'
         )
 
-    lesson_type_ids = db.query(models.LessonType.id).join(
-        models.SubscriptionLessonType
-    ).join(
-        models.SubscriptionTemplate
-    ).join(
-        models.Subscription
-    ).join(
-        models.Payment
-    ).where(
-        models.Subscription.student_id == student.id,
-        or_(
-            models.Subscription.expiration_date == None,
-            models.Subscription.expiration_date > datetime.now(timezone.utc)
-        ),
-        models.Payment.terminated == False
-    ).all()
-    lesson_type_ids = [lesson_type_id.id for lesson_type_id in lesson_type_ids]
+    check_student_can_join_group(student, group, db)
 
-    lessons_check = db.query(models.Lesson).where(exists().where(
-        models.Lesson.group_id == group.id,
-        models.Lesson.start_time > datetime.now(timezone.utc),
-        ~models.Lesson.lesson_type_id.in_(lesson_type_ids),
-        models.Lesson.terminated == False,
-        models.Lesson.is_confirmed == True
-    )).first()
-    if lessons_check:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Для вступления в группу у ученика должны быть абонементы, подходящие для всех занятий группы'
-        )
-
-    student_group = models.StudentGroup(
+    student_group = StudentGroup(
         student_id=student_id,
         group_id=group_id
     )
@@ -208,17 +252,17 @@ async def delete_student_group(
         student_id: uuid.UUID,
         group_id: uuid.UUID,
         response: Response,
-        current_user: models.User = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    student = db.query(models.Student).where(models.Student.id == student_id).first()
+    student = db.query(Student).where(Student.id == student_id).first()
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Ученик не найден'
         )
 
-    group = db.query(models.Group).where(models.Group.id == group_id).first()
+    group = db.query(Group).where(Group.id == group_id).first()
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -232,9 +276,9 @@ async def delete_student_group(
 
     if student.user_id != current_user.id and not current_user.admin:
         if current_user.teacher:
-            teacher_group = db.query(models.TeacherGroup).where(
-                models.TeacherGroup.teacher_id == current_user.teacher.id,
-                models.TeacherGroup.group_id == group.id
+            teacher_group = db.query(TeacherGroup).where(
+                TeacherGroup.teacher_id == current_user.teacher.id,
+                TeacherGroup.group_id == group.id
             ).first()
             if not teacher_group:
                 raise HTTPException(
@@ -247,12 +291,12 @@ async def delete_student_group(
                 detail='Недостаточно прав'
             )
 
-    existing_group = db.query(models.StudentGroup).where(
-        models.StudentGroup.student_id == student_id,
-        models.StudentGroup.group_id == group_id
+    existing_group = db.query(StudentGroup).where(
+        StudentGroup.student_id == student_id,
+        StudentGroup.group_id == group_id
     ).first()
     if not existing_group:
-        response.status_code=status.HTTP_204_NO_CONTENT
+        response.status_code = status.HTTP_204_NO_CONTENT
         return 'Ученик не связан с этой группой'
 
     db.delete(existing_group)

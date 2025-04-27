@@ -7,7 +7,7 @@ import uuid
 from typing import Optional, List
 
 
-class GroupBase(BaseModel):
+class GroupCreate(BaseModel):
     name: str
     description: Optional[str] = None
     level_id: uuid.UUID
@@ -17,7 +17,7 @@ class GroupBase(BaseModel):
         from_attributes = True
 
 
-class GroupInfo(GroupBase):
+class GroupInfo(GroupCreate):
     id: uuid.UUID
     created_at: datetime
     terminated: bool
@@ -34,8 +34,38 @@ class GroupMoreInfo(GroupInfo):
 
 
 class GroupFullInfo(GroupMoreInfo):
-    students: List["StudentMoreInfo"]
-    teachers: List["TeacherMoreInfo"]
+    students: List['StudentMoreInfo']
+    teachers: List['TeacherMoreInfo']
+
+    class Config:
+        from_attributes = True
+
+
+class GroupPage(BaseModel):
+    groups: List[GroupInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class GroupFullInfoPage(BaseModel):
+    groups: List[GroupFullInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class GroupFilters(BaseModel):
+    has_teachers: Optional[bool] = None
+    has_students: Optional[bool] = None
+    terminated: Optional[bool] = None
+
+    teacher_ids: Optional[List[uuid.UUID]] = None
+    student_ids: Optional[List[uuid.UUID]] = None
+    dance_style_ids: Optional[List[uuid.UUID]] = None
+    level_ids: Optional[List[uuid.UUID]] = None
 
     class Config:
         from_attributes = True
@@ -47,20 +77,6 @@ class GroupUpdate(BaseModel):
     level_id: Optional[uuid.UUID] = None
     max_capacity: Optional[int] = None
     terminated: Optional[bool] = None
-
-    class Config:
-        from_attributes = True
-
-
-class GroupSearch(BaseModel):
-    has_teachers: Optional[bool] = None
-    has_students: Optional[bool] = None
-    terminated: Optional[bool] = None
-
-    teacher_ids: Optional[List[uuid.UUID]] = None
-    student_ids: Optional[List[uuid.UUID]] = None
-    dance_style_ids: Optional[List[uuid.UUID]] = None
-    level_ids: Optional[List[uuid.UUID]] = None
 
     class Config:
         from_attributes = True

@@ -5,7 +5,7 @@ from typing import Optional
 import uuid
 
 
-class UserBase(BaseModel):
+class UserInfo(BaseModel):
     id: uuid.UUID
     email: EmailStr
     first_name: str
@@ -15,21 +15,6 @@ class UserBase(BaseModel):
     phone_number: str
     created_at: datetime
     terminated: bool
-
-    class Config:
-        from_attributes = True
-
-
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    middle_name: Optional[str] = None
-    description: Optional[str] = None
-    phone_number: Optional[str] = None
-    old_password: Optional[str] = None
-    new_password: Optional[str] = None
-    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -54,9 +39,23 @@ class UserCreate(BaseModel):
         from_attributes = True
 
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+class UserFilters(BaseModel):
+    terminated: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    description: Optional[str] = None
+    phone_number: Optional[str] = None
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
+    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True

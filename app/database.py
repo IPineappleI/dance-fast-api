@@ -8,19 +8,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Принудительно устанавливаем правильный URL соединения
-DATABASE_URL = "postgresql://postgres:postgrya@localhost:5432/dance_api"
-DATABASE_NAME = "dance_api"
+DATABASE_URL = 'postgresql://postgres:postgrya@localhost:5432/dance_api'
+DATABASE_NAME = 'dance_api'
 
-print(f"Используемый DATABASE_URL: {DATABASE_URL}")
+print(f'Используемый DATABASE_URL: {DATABASE_URL}')
 
 # Устанавливаем параметры подключения напрямую
-user = "postgres"
-password = "postgrya"
-host = "localhost"
-port = "5432"
-database = "dance-api"
+user = 'postgres'
+password = 'postgrya'
+host = 'localhost'
+port = '5432'
+database = 'dance-api'
 
-print(f"Используемые параметры: user={user}, host={host}, port={port}, database={database}")
+print(f'Используемые параметры: user={user}, host={host}, port={port}, database={database}')
 
 def init_db():
     # Подключаемся к postgres для создания базы данных
@@ -36,18 +36,18 @@ def init_db():
         
         with conn.cursor() as cur:
             # Проверяем существование базы данных
-            cur.execute(f"SELECT 1 FROM pg_database WHERE datname = %s", (DATABASE_NAME,))
+            cur.execute(f'SELECT 1 FROM pg_database WHERE datname = %s', (DATABASE_NAME,))
             exists = cur.fetchone()
             
             if not exists:
                 # Создаем базу данных
-                cur.execute(f"CREATE DATABASE {DATABASE_NAME}")
-                print(f"База данных {DATABASE_NAME} успешно создана")
+                cur.execute(f'CREATE DATABASE {DATABASE_NAME}')
+                print(f'База данных {DATABASE_NAME} успешно создана')
             else:
-                print(f"База данных {DATABASE_NAME} уже существует")
+                print(f'База данных {DATABASE_NAME} уже существует')
                 
     except Exception as e:
-        print(f"Ошибка при инициализации базы данных: {e}")
+        print(f'Ошибка при инициализации базы данных: {e}')
     finally:
         if 'conn' in locals() and conn:
             conn.close()
@@ -56,9 +56,9 @@ def init_db():
     try:
         test_engine = create_engine(DATABASE_URL)
         with test_engine.connect() as conn:
-            print("Тестовое подключение к базе данных успешно")
+            print('Тестовое подключение к базе данных успешно')
     except Exception as e:
-        print(f"Ошибка при тестовом подключении: {e}")
+        print(f'Ошибка при тестовом подключении: {e}')
 
 # Создаем движок для работы с нашей базой данных
 engine = create_engine(DATABASE_URL)

@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 import uuid
 
 
-class LevelBase(BaseModel):
+class LevelCreate(BaseModel):
     name: str
     description: Optional[str] = None
 
@@ -13,10 +13,25 @@ class LevelBase(BaseModel):
         from_attributes = True
 
 
-class LevelInfo(LevelBase):
+class LevelInfo(LevelCreate):
     id: uuid.UUID
     created_at: datetime
     terminated: bool
+
+    class Config:
+        from_attributes = True
+
+
+class LevelPage(BaseModel):
+    levels: List[LevelInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class LevelFilters(BaseModel):
+    terminated: Optional[bool] = None
 
     class Config:
         from_attributes = True

@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     PORT: int
     
     # Настройки JWT авторизации
-    SECRET_KEY: Optional[str] = "0192u9041720917409104"
-    ALGORITHM: Optional[str] = "HS256"
+    SECRET_KEY: Optional[str] = '0192u9041720917409104'
+    ALGORITHM: Optional[str] = 'HS256'
     ACCESS_TOKEN_EXPIRE_MINUTES: Optional[int] = 60
 
     @field_validator('DATABASE_URL')
@@ -32,8 +32,8 @@ class Settings(BaseSettings):
         return v
 
     class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+        env_file = '.env'
+        env_file_encoding = 'utf-8'
         case_sensitive = True
 
 # Создание экземпляра настроек

@@ -10,19 +10,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Устанавливаем параметры подключения напрямую
-user = os.getenv("PGUSER")
-password = os.getenv("PGPASSWORD")
-host = os.getenv("PGHOST")
-port = os.getenv("PGPORT")
-database = os.getenv("DATABASE_NAME")
+user = os.getenv('PGUSER')
+password = os.getenv('PGPASSWORD')
+host = os.getenv('PGHOST')
+port = os.getenv('PGPORT')
+database = os.getenv('DATABASE_NAME')
 
 # Принудительно устанавливаем правильный URL соединения
-DATABASE_URL = f"postgresql://{user}:{password}@{host}:5432/{database}"
-DATABASE_NAME = "railway"
+DATABASE_URL = f'postgresql://{user}:{password}@{host}:5432/{database}'
+DATABASE_NAME = 'railway'
 
-print(f"Используемый DATABASE_URL: {DATABASE_URL}")
+print(f'Используемый DATABASE_URL: {DATABASE_URL}')
 
-print(f"Используемые параметры: user={user}, host={host}, port={port}, database={database}")
+print(f'Используемые параметры: user={user}, host={host}, port={port}, database={database}')
 
 # def init_db():
 #     # Подключаемся к postgres для создания базы данных
@@ -38,18 +38,18 @@ print(f"Используемые параметры: user={user}, host={host}, p
 #
 #         with conn.cursor() as cur:
 #             # Проверяем существование базы данных
-#             cur.execute(f"SELECT 1 FROM pg_database WHERE datname = %s", (DATABASE_NAME,))
+#             cur.execute(f'SELECT 1 FROM pg_database WHERE datname = %s', (DATABASE_NAME,))
 #             exists = cur.fetchone()
 #
 #             if not exists:
 #                 # Создаем базу данных
-#                 cur.execute(f"CREATE DATABASE {DATABASE_NAME}")
-#                 print(f"База данных {DATABASE_NAME} успешно создана")
+#                 cur.execute(f'CREATE DATABASE {DATABASE_NAME}')
+#                 print(f'База данных {DATABASE_NAME} успешно создана')
 #             else:
-#                 print(f"База данных {DATABASE_NAME} уже существует")
+#                 print(f'База данных {DATABASE_NAME} уже существует')
 #
 #     except Exception as e:
-#         print(f"Ошибка при инициализации базы данных: {e}")
+#         print(f'Ошибка при инициализации базы данных: {e}')
 #     finally:
 #         if 'conn' in locals() and conn:
 #             conn.close()
@@ -58,9 +58,9 @@ print(f"Используемые параметры: user={user}, host={host}, p
 #     try:
 #         test_engine = create_engine(DATABASE_URL)
 #         with test_engine.connect() as conn:
-#             print("Тестовое подключение к базе данных успешно")
+#             print('Тестовое подключение к базе данных успешно')
 #     except Exception as e:
-#         print(f"Ошибка при тестовом подключении: {e}")
+#         print(f'Ошибка при тестовом подключении: {e}')
 
 # Создаем движок для работы с нашей базой данных
 engine = create_engine(DATABASE_URL)

@@ -6,7 +6,7 @@ import uuid
 from app.schemas.lessonType import LessonTypeFullInfo
 
 
-class SubscriptionTemplateBase(BaseModel):
+class SubscriptionTemplateCreate(BaseModel):
     name: str
     description: Optional[str] = None
     lesson_count: int
@@ -18,7 +18,7 @@ class SubscriptionTemplateBase(BaseModel):
         from_attributes = True
 
 
-class SubscriptionTemplateInfo(SubscriptionTemplateBase):
+class SubscriptionTemplateInfo(SubscriptionTemplateCreate):
     id: uuid.UUID
     created_at: datetime
 
@@ -33,13 +33,17 @@ class SubscriptionTemplateFullInfo(SubscriptionTemplateInfo):
         from_attributes = True
 
 
-class SubscriptionTemplateUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    lesson_count: Optional[int] = None
-    expiration_date: Optional[datetime] = None
-    expiration_day_count: Optional[int] = None
-    price: Optional[float] = None
+class SubscriptionTemplatePage(BaseModel):
+    subscription_templates: List[SubscriptionTemplateInfo]
+    total: int
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionTemplateFullInfoPage(BaseModel):
+    subscription_templates: List[SubscriptionTemplateFullInfo]
+    total: int
 
     class Config:
         from_attributes = True
@@ -48,6 +52,19 @@ class SubscriptionTemplateUpdate(BaseModel):
 class SubscriptionTemplateSearch(BaseModel):
     lesson_type_ids: Optional[List[uuid.UUID]] = None
     dance_style_ids: Optional[List[uuid.UUID]] = None
+    is_expired: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    lesson_count: Optional[int] = None
+    expiration_date: Optional[datetime] = None
+    expiration_day_count: Optional[int] = None
+    price: Optional[float] = None
 
     class Config:
         from_attributes = True

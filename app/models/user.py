@@ -5,7 +5,7 @@ from app.models.base import BaseModel
 
 
 class User(BaseModel):
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
@@ -16,6 +16,6 @@ class User(BaseModel):
     phone_number = Column(String, unique=True, nullable=False)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    admin = relationship("Admin", uselist=False, back_populates="user")
-    student = relationship("Student", uselist=False, back_populates="user")
-    teacher = relationship("Teacher", uselist=False, back_populates="user")
+    admin = relationship('Admin', uselist=False, back_populates='user')
+    student = relationship('Student', uselist=False, back_populates='user')
+    teacher = relationship('Teacher', uselist=False, back_populates='user')

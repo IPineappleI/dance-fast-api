@@ -6,11 +6,11 @@ from app.models.base import BaseModel
 
 
 class Payment(BaseModel):
-    __tablename__ = "payments"
+    __tablename__ = 'payments'
 
-    payment_type_id = Column(UUID(as_uuid=True), ForeignKey("payment_types.id"), nullable=False)
+    payment_type_id = Column(UUID(as_uuid=True), ForeignKey('payment_types.id'), nullable=False)
     details = Column(String, nullable=True)
     terminated = Column(Boolean, nullable=False, default=False)
 
-    payment_type = relationship("PaymentType", uselist=False, back_populates="payments")
-    subscription = relationship("Subscription", uselist=False, back_populates="payment")
+    payment_type = relationship('PaymentType', uselist=False, back_populates='payments')
+    subscription = relationship('Subscription', uselist=False, back_populates='payment')
