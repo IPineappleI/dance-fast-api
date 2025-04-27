@@ -23,7 +23,7 @@ class EventTypeInfo(EventTypeCreate):
 
 
 class EventTypePage(BaseModel):
-    events_types: List[EventTypeInfo]
+    event_types: List[EventTypeInfo]
     total: int
 
     class Config:
