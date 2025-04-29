@@ -48,7 +48,7 @@ class Lesson(BaseModel):
     )
     actual_students = relationship(
         'Student',
-        primaryjoin='Lesson.id == LessonSubscription.lesson_id',
+        primaryjoin='and_(Lesson.id == LessonSubscription.lesson_id, LessonSubscription.cancelled == False)',
         secondary='join(LessonSubscription, Subscription, '
                   'LessonSubscription.subscription_id == Subscription.id)',
         secondaryjoin='Subscription.student_id == Student.id',

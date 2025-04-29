@@ -31,7 +31,8 @@ class Student(BaseModel):
         primaryjoin='Student.id == Subscription.student_id',
         secondary='join(Subscription, LessonSubscription, '
                   'Subscription.id == LessonSubscription.subscription_id)',
-        secondaryjoin='LessonSubscription.lesson_id == Lesson.id',
+        secondaryjoin='and_(LessonSubscription.lesson_id == Lesson.id, '
+                      'LessonSubscription.cancelled == False)',
         uselist=True,
         viewonly=True,
         overlaps='subscriptions',

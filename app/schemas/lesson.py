@@ -98,7 +98,8 @@ class LessonFullInfo(LessonInfo):
 
 
 class LessonWithSubscriptions(LessonFullInfo):
-    subscriptions: List[SubscriptionFullInfo]
+    fitting_subscriptions: Optional[List[SubscriptionFullInfo]] = None
+    used_subscription: Optional[SubscriptionFullInfo] = None
 
     class Config:
         from_attributes = True
@@ -114,14 +115,6 @@ class LessonPage(BaseModel):
 
 class LessonFullInfoPage(BaseModel):
     lessons: List[LessonFullInfo]
-    total: int
-
-    class Config:
-        from_attributes = True
-
-
-class LessonWithSubscriptionsPage(BaseModel):
-    lessons: List[LessonWithSubscriptions]
     total: int
 
     class Config:

@@ -612,7 +612,7 @@ async def search_teacher_lessons(
     )
 
 
-@router.post('/search/student', response_model=LessonWithSubscriptionsPage)
+@router.post('/search/student', response_model=LessonFullInfoPage)
 async def search_student_lessons(
         filters: LessonFilters,
         order_by: Annotated[str, AfterValidator(check_order_by)] = 'created_at',
@@ -626,7 +626,7 @@ async def search_student_lessons(
 
     lessons = db.query(Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
-    return LessonWithSubscriptionsPage(
+    return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
         ).offset(offset).limit(limit).all(),
@@ -649,7 +649,7 @@ async def search_group_lessons(
 
     lessons = db.query(Lesson)
     lessons = apply_filters_to_lessons(lessons, filters)
-    return LessonWithSubscriptionsPage(
+    return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
         ).offset(offset).limit(limit).all(),
@@ -672,7 +672,7 @@ async def get_lesson_by_id(
     return lesson
 
 
-@router.get('/full-info/{lesson_id}', response_model=LessonFullInfo)
+@router.get('/full-info/{lesson_id}', response_model=LessonWithSubscriptions)
 async def get_lesson_full_info_by_id(
         lesson_id: uuid.UUID,
         current_user: User = Depends(get_current_user),
@@ -684,6 +684,18 @@ async def get_lesson_full_info_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Занятие не найдено'
         )
+
+    if current_user.student:
+        if current_user.student not in lesson.actual_students:
+            lesson.fitting_subscriptions = [subscription for subscription in current_user.student.subscriptions
+                                            if lesson.lesson_type in subscription.subscription_template.lesson_types
+                                            and subscription.lessons_left > 0 and
+                                            (not subscription.expiration_date
+                                             or subscription.expiration_date > datetime.now(timezone('Europe/Moscow')))]
+        else:
+            lesson.used_subscription = [subscription for subscription in current_user.student.subscriptions
+                                        if lesson in subscription.lessons][0]
+
     return lesson
 
 
