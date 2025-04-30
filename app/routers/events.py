@@ -2,12 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
-from pytz import timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.models import User, Admin, Event, EventType
 from app.schemas.event import *
 
@@ -25,8 +24,8 @@ async def create_event(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    event_data.start_time = event_data.start_time.astimezone(timezone('Europe/Moscow'))
-    if event_data.start_time <= datetime.now(timezone('Europe/Moscow')):
+    event_data.start_time = event_data.start_time.astimezone(TIMEZONE)
+    if event_data.start_time <= datetime.now(TIMEZONE):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Мероприятие должно начинаться в будущем'
@@ -61,10 +60,10 @@ async def create_event(
 
 def apply_filters_to_events(events, filters):
     if filters.date_from:
-        filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
+        filters.date_from = filters.date_from.astimezone(TIMEZONE)
         events = events.where(Event.start_time >= filters.date_from)
     if filters.date_to:
-        filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
+        filters.date_to = filters.date_to.astimezone(TIMEZONE)
         events = events.where(Event.start_time <= filters.date_to)
 
     if filters.search_string:
@@ -169,7 +168,7 @@ async def patch_event(
             detail='Мероприятие не найдено'
         )
     if event_data.start_time:
-        event_data.start_time = event_data.start_time.astimezone(timezone('Europe/Moscow'))
+        event_data.start_time = event_data.start_time.astimezone(TIMEZONE)
 
     if event_data.event_type_id:
         event_type = db.query(EventType).where(EventType.id == event_data.event_type_id).first()

@@ -2,13 +2,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
-from pytz import timezone
 from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.auth.jwt import get_current_student, get_current_admin, get_current_user
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.routers.lessons import get_student_parallel_lesson
 from app.models import User, Admin, Student, Subscription, SubscriptionTemplate, Payment, Lesson, LessonSubscription
 from app.schemas.subscription import *
@@ -29,7 +28,7 @@ def check_subscription_template(subscription_template):
             detail='Шаблон абонемента не найден'
         )
     if (subscription_template.expiration_date and
-            subscription_template.expiration_date <= datetime.now(timezone('Europe/Moscow'))):
+            subscription_template.expiration_date <= datetime.now(TIMEZONE)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Шаблон абонемента не активен'
@@ -60,7 +59,7 @@ def check_subscription(subscription, student_id):
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
         )
-    if subscription.expiration_date and subscription.expiration_date <= datetime.now(timezone('Europe/Moscow')):
+    if subscription.expiration_date and subscription.expiration_date <= datetime.now(TIMEZONE):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Абонемент не активен'
@@ -100,7 +99,7 @@ async def create_subscription(
     )
 
     if subscription_template.expiration_day_count:
-        subscription.expiration_date = (datetime.now(timezone('Europe/Moscow')) +
+        subscription.expiration_date = (datetime.now(TIMEZONE) +
                                         timedelta(days=subscription_template.expiration_day_count))
 
     db.add(subscription)
@@ -126,7 +125,7 @@ def apply_filters_to_subscriptions(subscriptions, filters):
         subscriptions = subscriptions.where(
             or_(
                 Subscription.expiration_date == None,
-                Subscription.expiration_date > datetime.now(timezone('Europe/Moscow'))
+                Subscription.expiration_date > datetime.now(TIMEZONE)
             ) != filters.is_expired)
 
     return subscriptions

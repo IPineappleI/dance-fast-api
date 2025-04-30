@@ -2,12 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
-from pytz import timezone
 from sqlalchemy import exists, and_, or_, text
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.models import User, Admin, SubscriptionTemplate, SubscriptionLessonType, LessonType
 from app.schemas.subscriptionTemplate import *
 
@@ -37,7 +36,7 @@ def check_subscription_template(subscription_template_data):
         )
     if subscription_template_data.expiration_date:
         subscription_template_data.expiration_date = (
-            subscription_template_data.expiration_date.astimezone(timezone('Europe/Moscow'))
+            subscription_template_data.expiration_date.astimezone(TIMEZONE)
         )
 
 
@@ -90,7 +89,7 @@ def apply_filters_to_subscription_templates(subscription_templates, filters, db:
         subscription_templates = subscription_templates.where(
             or_(
                 SubscriptionTemplate.expiration_date == None,
-                SubscriptionTemplate.expiration_date > datetime.now(timezone('Europe/Moscow'))
+                SubscriptionTemplate.expiration_date > datetime.now(TIMEZONE)
             ) != filters.is_expired)
 
     return subscription_templates

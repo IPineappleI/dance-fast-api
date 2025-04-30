@@ -1,14 +1,13 @@
-from datetime import timedelta
+from datetime import timedelta, tzinfo
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
-from pytz import timezone
 from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_teacher, get_current_user
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.routers.lessons import get_teacher_parallel_lesson
 from app.models import User, Teacher, Slot, TeacherLessonType
 from app.schemas.slot import *
@@ -19,21 +18,30 @@ router = APIRouter(
 )
 
 
+def astimezone(t: time, tz: tzinfo) -> time:
+    return datetime.combine(
+        datetime.today(),
+        t,
+        t.tzinfo
+    ).astimezone(tz).timetz()
+
+
 def check_slot_data(slot_data, teacher_id, db: Session, existing_slot=None):
     if slot_data.start_time:
-        slot_data.start_time = slot_data.start_time.astimezone(timezone('Europe/Moscow'))
-    if slot_data.end_time:
-        slot_data.end_time = slot_data.end_time.astimezone(timezone('Europe/Moscow'))
-
+        slot_data.start_time = astimezone(slot_data.start_time, TIMEZONE)
     start_time = slot_data.start_time if slot_data.start_time else existing_slot.start_time
+
+    if slot_data.end_time:
+        slot_data.end_time = astimezone(slot_data.end_time, TIMEZONE)
     end_time = slot_data.end_time if slot_data.end_time else existing_slot.end_time
+
     if start_time >= end_time:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала слота должно быть раньше времени конца слота'
         )
 
-    if slot_data.day_of_week and (slot_data.day_of_week < 0 or slot_data.day_of_week > 6):
+    if slot_data.day_of_week is not None and (slot_data.day_of_week < 0 or slot_data.day_of_week > 6):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='День недели должен принимать значения от 0 до 6'
@@ -42,11 +50,12 @@ def check_slot_data(slot_data, teacher_id, db: Session, existing_slot=None):
     existing_slot = db.query(Slot).where(
         Slot.id != existing_slot.id if existing_slot else True,
         Slot.teacher_id == teacher_id,
-        Slot.day_of_week == slot_data.day_of_week,
+        Slot.day_of_week ==
+        (slot_data.day_of_week if slot_data.day_of_week is not None else existing_slot.day_of_week),
         or_(
-            and_(slot_data.start_time >= Slot.start_time, slot_data.start_time < Slot.end_time),
-            and_(slot_data.end_time > Slot.start_time, slot_data.end_time <= Slot.end_time),
-            and_(slot_data.start_time <= Slot.start_time, slot_data.end_time >= Slot.end_time)
+            and_(start_time >= Slot.start_time, start_time < Slot.end_time),
+            and_(end_time > Slot.start_time, end_time <= Slot.end_time),
+            and_(start_time <= Slot.start_time, end_time >= Slot.end_time)
         )
     ).first()
     if existing_slot:
@@ -80,10 +89,10 @@ async def create_slot(
 
 def apply_filters_to_slots(slots, filters):
     if filters.start_time:
-        filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
+        filters.start_time = astimezone(filters.start_time, TIMEZONE)
         slots = slots.where(Slot.start_time >= filters.start_time)
     if filters.end_time:
-        filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
+        filters.end_time = astimezone(filters.end_time, TIMEZONE)
         slots = slots.where(Slot.end_time <= filters.end_time)
 
     if filters.days_of_week:
@@ -150,11 +159,11 @@ async def search_slots_full_info(
 
 
 def get_available_slots(slots, date_from, date_to, db):
-    now = datetime.now(timezone('Europe/Moscow'))
-    date_from = date_from.astimezone(timezone('Europe/Moscow'))
+    now = datetime.now(TIMEZONE)
+    date_from = date_from.astimezone(TIMEZONE)
     if date_from < now:
         date_from = now
-    date_to = date_to.astimezone(timezone('Europe/Moscow'))
+    date_to = date_to.astimezone(TIMEZONE)
 
     available_slots = []
     for slot in slots:
@@ -193,14 +202,14 @@ async def search_available_slots(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
-    filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
+    filters.date_from = filters.date_from.astimezone(TIMEZONE)
+    filters.date_to = filters.date_to.astimezone(TIMEZONE)
     if filters.date_from > filters.date_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала поиска не может быть больше времени конца поиска'
         )
-    if filters.date_to < datetime.now(timezone('Europe/Moscow')):
+    if filters.date_to < datetime.now(TIMEZONE):
         return []
 
     slots = db.query(Slot)

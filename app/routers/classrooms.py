@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
-from pytz import timezone
 from sqlalchemy import exists, and_, or_, text
 from sqlalchemy.orm import Session
 from typing import Annotated
 
 from app.auth.jwt import get_current_admin, get_current_user
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.models import Classroom, User, Admin, Lesson
 from app.schemas.classroom import *
 
@@ -75,14 +74,14 @@ async def search_available_classrooms(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
-    filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
+    filters.date_from = filters.date_from.astimezone(TIMEZONE)
+    filters.date_to = filters.date_to.astimezone(TIMEZONE)
     if filters.date_from > filters.date_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Время начала поиска не может быть больше времени конца поиска'
         )
-    if filters.date_from < datetime.now(timezone('Europe/Moscow')):
+    if filters.date_from < datetime.now(TIMEZONE):
         return ClassroomPage(classrooms=[], total=0)
 
     classrooms = db.query(Classroom).where(Classroom.terminated == False).where(~exists(Lesson).where(

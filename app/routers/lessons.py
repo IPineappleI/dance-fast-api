@@ -1,5 +1,4 @@
 from datetime import timedelta
-from pytz import timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -8,7 +7,7 @@ from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student, get_current_user
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.routers.classrooms import search_available_classrooms
 from app.models import User, Admin, Teacher, Student, Group, Lesson, LessonType, Classroom, Slot
 from app.models import Subscription, SubscriptionTemplate
@@ -24,8 +23,8 @@ router = APIRouter(
 
 
 async def check_classroom(classroom_id, start_time, finish_time, are_neighbours_allowed, db: Session):
-    start_time = start_time.astimezone(timezone('Europe/Moscow'))
-    finish_time = finish_time.astimezone(timezone('Europe/Moscow'))
+    start_time = start_time.astimezone(TIMEZONE)
+    finish_time = finish_time.astimezone(TIMEZONE)
 
     classroom = db.query(Classroom).where(Classroom.id == classroom_id).first()
     if not classroom:
@@ -54,9 +53,9 @@ async def check_classroom(classroom_id, start_time, finish_time, are_neighbours_
 
 async def check_lesson_data(lesson_data, is_group, db: Session, existing_lesson=None):
     if lesson_data.start_time:
-        lesson_data.start_time = lesson_data.start_time.astimezone(timezone('Europe/Moscow'))
+        lesson_data.start_time = lesson_data.start_time.astimezone(TIMEZONE)
     if lesson_data.finish_time:
-        lesson_data.finish_time = lesson_data.finish_time.astimezone(timezone('Europe/Moscow'))
+        lesson_data.finish_time = lesson_data.finish_time.astimezone(TIMEZONE)
 
     start_time = lesson_data.start_time if lesson_data.start_time else existing_lesson.start_time
     finish_time = lesson_data.finish_time if lesson_data.finish_time else existing_lesson.finish_time
@@ -65,7 +64,7 @@ async def check_lesson_data(lesson_data, is_group, db: Session, existing_lesson=
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Начало занятия должно быть раньше его конца'
         )
-    if not existing_lesson and start_time < datetime.now(timezone('Europe/Moscow')):
+    if not existing_lesson and start_time < datetime.now(TIMEZONE):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Запрещено создавать занятия в прошлом'
@@ -138,7 +137,7 @@ def create_subscription(student_id, lesson_type_id, db: Session):
     ).where(
         or_(
             SubscriptionTemplate.expiration_date == None,
-            SubscriptionTemplate.expiration_date > datetime.now(timezone('Europe/Moscow'))
+            SubscriptionTemplate.expiration_date > datetime.now(TIMEZONE)
         ),
         SubscriptionLessonType.lesson_type_id == lesson_type_id
     ).order_by(
@@ -157,7 +156,7 @@ def create_subscription(student_id, lesson_type_id, db: Session):
     )
     if subscription_template.expiration_day_count:
         subscription.expiration_date = (
-                datetime.now(timezone('Europe/Moscow')) + timedelta(days=subscription_template.expiration_day_count)
+                datetime.now(TIMEZONE) + timedelta(days=subscription_template.expiration_day_count)
         )
 
     db.add(subscription)
@@ -166,8 +165,8 @@ def create_subscription(student_id, lesson_type_id, db: Session):
 
 
 def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session):
-    start_time = start_time.astimezone(timezone('Europe/Moscow'))
-    finish_time = finish_time.astimezone(timezone('Europe/Moscow'))
+    start_time = start_time.astimezone(TIMEZONE)
+    finish_time = finish_time.astimezone(TIMEZONE)
     teacher_parallel_lesson = db.query(Lesson).join(
         TeacherLesson, and_(
             TeacherLesson.teacher_id == teacher_id,
@@ -188,8 +187,8 @@ def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session
 
 
 def get_student_parallel_lesson(student_id, start_time, finish_time, db: Session):
-    start_time = start_time.astimezone(timezone('Europe/Moscow'))
-    finish_time = finish_time.astimezone(timezone('Europe/Moscow'))
+    start_time = start_time.astimezone(TIMEZONE)
+    finish_time = finish_time.astimezone(TIMEZONE)
     student_parallel_lesson = db.query(Lesson).join(
         LessonSubscription, and_(
             LessonSubscription.lesson_id == Lesson.id,
@@ -487,10 +486,10 @@ async def respond_to_lesson_request(
 
 def apply_filters_to_lessons(lessons, filters):
     if filters.date_from:
-        filters.date_from = filters.date_from.astimezone(timezone('Europe/Moscow'))
+        filters.date_from = filters.date_from.astimezone(TIMEZONE)
         lessons = lessons.where(Lesson.start_time >= filters.date_from)
     if filters.date_to:
-        filters.date_to = filters.date_to.astimezone(timezone('Europe/Moscow'))
+        filters.date_to = filters.date_to.astimezone(TIMEZONE)
         lessons = lessons.where(Lesson.finish_time <= filters.date_to)
 
     if filters.is_confirmed is not None:
@@ -691,7 +690,7 @@ async def get_lesson_full_info_by_id(
                                             if lesson.lesson_type in subscription.subscription_template.lesson_types
                                             and subscription.lessons_left > 0 and
                                             (not subscription.expiration_date
-                                             or subscription.expiration_date > datetime.now(timezone('Europe/Moscow')))]
+                                             or subscription.expiration_date > datetime.now(TIMEZONE))]
         else:
             lesson.used_subscription = [subscription for subscription in current_user.student.subscriptions
                                         if lesson in subscription.lessons][0]

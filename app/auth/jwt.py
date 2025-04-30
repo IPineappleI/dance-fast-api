@@ -4,11 +4,10 @@ from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from pytz import timezone
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.models.teacher import Teacher
 from app.models.student import Student
 from app.models.user import User
@@ -30,9 +29,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     # Устанавливаем время истечения срока действия токена
     if expires_delta:
-        expire = datetime.now(timezone('Europe/Moscow')) + expires_delta
+        expire = datetime.now(TIMEZONE) + expires_delta
     else:
-        expire = datetime.now(timezone('Europe/Moscow')) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(TIMEZONE) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({'exp': expire})
 

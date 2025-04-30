@@ -1,3 +1,4 @@
+from pytz import timezone
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -22,6 +23,9 @@ database = 'dance-api'
 
 print(f'Используемые параметры: user={user}, host={host}, port={port}, database={database}')
 
+TIMEZONE_NAME = 'Europe/Moscow'
+TIMEZONE = timezone(TIMEZONE_NAME)
+
 def init_db():
     # Подключаемся к postgres для создания базы данных
     try:
@@ -43,8 +47,8 @@ def init_db():
                 # Создаем базу данных
                 cur.execute(f'CREATE DATABASE {DATABASE_NAME}')
                 print(f'База данных {DATABASE_NAME} успешно создана')
-                cur.execute("SET TIMEZONE = 'Europe/Moscow'")
-                print(f'Выставлен московский часовой пояс (+03)')
+                cur.execute(f"SET TIMEZONE = {TIMEZONE_NAME}")
+                print(f'Выставлен часовой пояс {TIMEZONE_NAME}')
             else:
                 print(f'База данных {DATABASE_NAME} уже существует')
                 

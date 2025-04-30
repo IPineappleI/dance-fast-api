@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta, time
 
 from fastapi import APIRouter, Depends, status
-from pytz import timezone
 from sqlalchemy.orm import Session
 
 from app.auth.password import get_password_hash
-from app.database import get_db
+from app.database import get_db, TIMEZONE
 from app.models import *
 
 router = APIRouter(
@@ -572,7 +571,7 @@ async def create_test_data(db: Session = Depends(get_db)):
         name='12 групповых занятий',
         description='Временное предложение!',
         lesson_count=12,
-        expiration_date=datetime.now(timezone('Europe/Moscow')) + timedelta(days=14),
+        expiration_date=datetime.now(TIMEZONE) + timedelta(days=14),
         expiration_day_count=14,
         price=21000
     )
@@ -679,7 +678,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment0 = Payment(
         payment_type_id=payment_type_cash.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=14)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=14)
     )
     db.add(payment0)
     db.commit()
@@ -695,7 +694,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     payment1 = Payment(
         payment_type_id=payment_type_card.id,
         details='Оплата прошла успешно',
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=1)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=1)
     )
     db.add(payment1)
     db.commit()
@@ -703,7 +702,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     subscription1 = Subscription(
         student_id=student_beginner1.id,
         subscription_template_id=subscription_template_group3.id,
-        expiration_date=datetime.now(timezone('Europe/Moscow')) + timedelta(days=14),
+        expiration_date=datetime.now(TIMEZONE) + timedelta(days=14),
         payment_id=payment1.id
     )
     db.add(subscription1)
@@ -711,7 +710,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment2 = Payment(
         payment_type_id=payment_type_card.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=8)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=8)
     )
     db.add(payment2)
     db.commit()
@@ -726,7 +725,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment3 = Payment(
         payment_type_id=payment_type_cash.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=7)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=7)
     )
     db.add(payment3)
     db.commit()
@@ -741,7 +740,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment4 = Payment(
         payment_type_id=payment_type_card.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=5)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=5)
     )
     db.add(payment4)
     db.commit()
@@ -756,7 +755,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment5 = Payment(
         payment_type_id=payment_type_card.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=5)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=5)
     )
     db.add(payment5)
     db.commit()
@@ -771,7 +770,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment6 = Payment(
         payment_type_id=payment_type_cash.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=4)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=4)
     )
     db.add(payment6)
     db.commit()
@@ -786,7 +785,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment7 = Payment(
         payment_type_id=payment_type_card.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=2)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=2)
     )
     db.add(payment7)
     db.commit()
@@ -801,7 +800,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     payment8 = Payment(
         payment_type_id=payment_type_cash.id,
-        created_at=datetime.now(timezone('Europe/Moscow')) - timedelta(days=2)
+        created_at=datetime.now(TIMEZONE) - timedelta(days=2)
     )
     db.add(payment8)
     db.commit()
@@ -920,8 +919,8 @@ async def create_test_data(db: Session = Depends(get_db)):
         name='Танго. Введение',
         description='Постигаем азы танго',
         lesson_type_id=lesson_type_tango_group.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) - timedelta(days=7),
-        finish_time=datetime.now(timezone('Europe/Moscow')) - timedelta(days=7) + timedelta(minutes=90),
+        start_time=datetime.now(TIMEZONE) - timedelta(days=7),
+        finish_time=datetime.now(TIMEZONE) - timedelta(days=7) + timedelta(minutes=90),
         classroom_id=classroom1.id,
         group_id=group_beginner_tango.id,
         are_neighbours_allowed=False,
@@ -975,8 +974,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson2 = Lesson(
         name='Групповое занятие по танго',
         lesson_type_id=lesson_type_tango_group.id,
-        start_time=datetime.now(timezone('Europe/Moscow')),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(minutes=90),
+        start_time=datetime.now(TIMEZONE),
+        finish_time=datetime.now(TIMEZONE) + timedelta(minutes=90),
         classroom_id=classroom2.id,
         group_id=group_beginner_tango.id,
         are_neighbours_allowed=False,
@@ -1044,8 +1043,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson3 = Lesson(
         name='Групповое занятие по танго',
         lesson_type_id=lesson_type_tango_group.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=7),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=7) + timedelta(minutes=90),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=7),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=7) + timedelta(minutes=90),
         classroom_id=classroom2.id,
         group_id=group_beginner_tango.id,
         are_neighbours_allowed=False,
@@ -1113,8 +1112,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson4 = Lesson(
         name='Групповое занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_group.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=2),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=2) + timedelta(minutes=90),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=2),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=2) + timedelta(minutes=90),
         classroom_id=classroom4.id,
         group_id=group_beginner_hiphop.id,
         are_neighbours_allowed=True,
@@ -1168,8 +1167,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson5 = Lesson(
         name='Групповое занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_group.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=9),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=9) + timedelta(minutes=90),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=9),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=9) + timedelta(minutes=90),
         classroom_id=classroom4.id,
         group_id=group_beginner_hiphop.id,
         are_neighbours_allowed=True,
@@ -1223,8 +1222,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson6 = Lesson(
         name='Индивидуальное занятие по танго в паре',
         lesson_type_id=lesson_type_tango_pair.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=1),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=1) + timedelta(minutes=60),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=1),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=1) + timedelta(minutes=60),
         classroom_id=classroom3.id,
         are_neighbours_allowed=False,
         is_confirmed=True
@@ -1249,8 +1248,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson7 = Lesson(
         name='Индивидуальное занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_indiv.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=9) + timedelta(minutes=15),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=9) + timedelta(minutes=75),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=9) + timedelta(minutes=15),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=9) + timedelta(minutes=75),
         classroom_id=classroom4.id,
         are_neighbours_allowed=True,
         is_confirmed=True
@@ -1275,8 +1274,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson8 = Lesson(
         name='Заявка на индивидуальное занятие по танго',
         lesson_type_id=lesson_type_tango_pair.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=11),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=11) + timedelta(minutes=60),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=11),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=11) + timedelta(minutes=60),
         are_neighbours_allowed=True,
         is_confirmed=False
     )
@@ -1300,8 +1299,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson9 = Lesson(
         name='Заявка на индивидуальное занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_indiv.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=3) + timedelta(minutes=9),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=3) + timedelta(minutes=69),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=3) + timedelta(minutes=9),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=3) + timedelta(minutes=69),
         are_neighbours_allowed=True,
         is_confirmed=False
     )
@@ -1325,8 +1324,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     lesson10 = Lesson(
         name='Заявка на индивидуальное занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_indiv.id,
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=13),
-        finish_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=13) + timedelta(minutes=50),
+        start_time=datetime.now(TIMEZONE) + timedelta(days=13),
+        finish_time=datetime.now(TIMEZONE) + timedelta(days=13) + timedelta(minutes=50),
         are_neighbours_allowed=False,
         is_confirmed=False
     )
@@ -1364,7 +1363,7 @@ async def create_test_data(db: Session = Depends(get_db)):
         event_type_id=event_type1.id,
         name='Лекция по истории танго',
         description='Безумно захватывающая лекция!',
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(minutes=100)
+        start_time=datetime.now(TIMEZONE) + timedelta(minutes=100)
     )
     db.add(event1)
     db.commit()
@@ -1372,7 +1371,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     event2 = Event(
         event_type_id=event_type1.id,
         name='Лекция по истории хип-хопа',
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=10)
+        start_time=datetime.now(TIMEZONE) + timedelta(days=10)
     )
     db.add(event2)
     db.commit()
@@ -1380,7 +1379,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     event3 = Event(
         event_type_id=event_type2.id,
         name='Юбилей Elcentro',
-        start_time=datetime.now(timezone('Europe/Moscow')) + timedelta(days=14)
+        start_time=datetime.now(TIMEZONE) + timedelta(days=14)
     )
     db.add(event3)
     db.commit()
@@ -1388,8 +1387,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     slot1 = Slot(
         teacher_id=teacher1.id,
         day_of_week=1,
-        start_time=time(16, 0),
-        end_time=time(17, 0)
+        start_time=time(16, 0, 0, 0, TIMEZONE),
+        end_time=time(17, 0, 0, 0, TIMEZONE)
     )
     db.add(slot1)
     db.commit()
@@ -1397,8 +1396,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     slot2 = Slot(
         teacher_id=teacher2.id,
         day_of_week=2,
-        start_time=time(18, 0),
-        end_time=time(19, 0)
+        start_time=time(18, 0, 0, 0, TIMEZONE),
+        end_time=time(19, 0, 0, 0, TIMEZONE)
     )
     db.add(slot2)
     db.commit()
@@ -1406,8 +1405,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     slot3 = Slot(
         teacher_id=teacher2.id,
         day_of_week=4,
-        start_time=time(18, 0),
-        end_time=time(19, 0)
+        start_time=time(18, 0, 0, 0, TIMEZONE),
+        end_time=time(19, 0, 0, 0, TIMEZONE)
     )
     db.add(slot3)
     db.commit()
