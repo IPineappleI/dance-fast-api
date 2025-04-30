@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
 from app.models import User, Admin, Group, Level, TeacherGroup, StudentGroup, Lesson, LessonType
+from app.routers.students import get_fitting_subscriptions
 from app.schemas.group import *
 
 router = APIRouter(
@@ -143,7 +144,7 @@ async def get_group_by_id(
     return group
 
 
-@router.get('/full-info/{group_id}', response_model=GroupFullInfo)
+@router.get('/full-info/{group_id}', response_model=GroupWithSubscriptions)
 async def get_group_full_info_by_id(
         group_id: uuid.UUID,
         current_user: User = Depends(get_current_user),
@@ -155,6 +156,10 @@ async def get_group_full_info_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Группа не найдена'
         )
+
+    if current_user.student and current_user.student not in group.students:
+        group.fitting_subscriptions = get_fitting_subscriptions(current_user.student, group, db)
+
     return group
 
 

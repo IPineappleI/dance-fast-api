@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.schemas.subscription import SubscriptionFullInfo
 from app.schemas.level import LevelInfo
 import uuid
 from typing import Optional, List
@@ -36,6 +37,13 @@ class GroupMoreInfo(GroupInfo):
 class GroupFullInfo(GroupMoreInfo):
     students: List['StudentMoreInfo']
     teachers: List['TeacherMoreInfo']
+
+    class Config:
+        from_attributes = True
+
+
+class GroupWithSubscriptions(GroupFullInfo):
+    fitting_subscriptions: Optional[List[SubscriptionFullInfo]] = None
 
     class Config:
         from_attributes = True

@@ -527,6 +527,8 @@ def apply_filters_to_lessons(lessons, filters):
     if filters.student_ids:
         lessons = lessons.join(
             LessonSubscription
+        ).where(
+            LessonSubscription.cancelled == False
         ).join(
             Subscription
         ).where(

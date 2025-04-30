@@ -153,37 +153,22 @@ async def patch_student(
     return student
 
 
-def check_student_can_join_group(student, group, db):
-    lesson_type_ids = db.query(LessonType.id).join(
-        SubscriptionLessonType
-    ).join(
-        SubscriptionTemplate
-    ).join(
-        Subscription
-    ).join(
-        Payment
-    ).where(
+def get_fitting_subscriptions(student, group, db):
+    fitting_subscriptions = db.query(Subscription).join(SubscriptionTemplate).join(Payment).where(
         Subscription.student_id == student.id,
         or_(
             Subscription.expiration_date == None,
             Subscription.expiration_date > datetime.now(TIMEZONE)
         ),
-        Payment.terminated == False
-    ).all()
-    lesson_type_ids = [lesson_type_id.id for lesson_type_id in lesson_type_ids]
-
-    lessons_check = db.query(Lesson).where(exists().where(
+        Payment.terminated == False,
+    ).where(~exists(Lesson).where(
         Lesson.group_id == group.id,
         Lesson.start_time > datetime.now(TIMEZONE),
-        ~Lesson.lesson_type_id.in_(lesson_type_ids),
         Lesson.terminated == False,
-        Lesson.is_confirmed == True
-    )).first()
-    if lessons_check:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Для вступления в группу у ученика должны быть абонементы, подходящие для всех занятий группы'
-        )
+        Lesson.is_confirmed == True,
+        ~Lesson.lesson_type_id.in_(Subscription.lesson_type_ids)
+    )).all()
+    return fitting_subscriptions
 
 
 @router.post('/groups/{student_id}/{group_id}', response_model=StudentFullInfo,
@@ -233,7 +218,13 @@ async def create_student_group(
             detail='Ученик уже связан с этой группой'
         )
 
-    check_student_can_join_group(student, group, db)
+    fitting_subscriptions = get_fitting_subscriptions(student, group, db)
+
+    if len(fitting_subscriptions) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Для вступления в группу у ученика должны быть абонементы, подходящие для всех занятий группы'
+        )
 
     student_group = StudentGroup(
         student_id=student_id,
@@ -298,6 +289,18 @@ async def delete_student_group(
     if not existing_group:
         response.status_code = status.HTTP_204_NO_CONTENT
         return 'Ученик не связан с этой группой'
+
+    active_lesson_subscriptions = db.query(LessonSubscription).where(
+        LessonSubscription.cancelled == False
+    ).join(Subscription).where(
+        Subscription.student_id == student_id
+    ).join(Lesson).where(
+        Lesson.group_id == group_id,
+        Lesson.start_time > datetime.now(TIMEZONE)
+    ).all()
+
+    for lesson_subscription in active_lesson_subscriptions:
+        lesson_subscription.cancelled = True
 
     db.delete(existing_group)
     db.commit()
