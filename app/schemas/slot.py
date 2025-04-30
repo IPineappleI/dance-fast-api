@@ -8,6 +8,7 @@ from app.schemas.teacher import TeacherMoreInfo
 
 
 class SlotCreate(BaseModel):
+    teacher_id: uuid.UUID
     day_of_week: int
     start_time: time
     end_time: time
@@ -18,7 +19,6 @@ class SlotCreate(BaseModel):
 
 class SlotInfo(SlotCreate):
     id: uuid.UUID
-    teacher_id: uuid.UUID
     created_at: datetime
 
     class Config:
@@ -81,6 +81,7 @@ class SlotAvailableFilters(BaseModel):
 
 
 class SlotUpdate(BaseModel):
+    teacher_id: Optional[uuid.UUID] = None
     day_of_week: Optional[int] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None

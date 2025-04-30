@@ -68,13 +68,25 @@ def check_slot_data(slot_data, teacher_id, db: Session, existing_slot=None):
 @router.post('/', response_model=SlotInfo, status_code=status.HTTP_201_CREATED)
 async def create_slot(
         slot_data: SlotCreate,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    check_slot_data(slot_data, current_teacher.id, db)
+    teacher = db.query(Teacher).where(Teacher.id == slot_data.teacher_id).first()
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Преподаватель не найден'
+        )
+    if not current_user.admin and current_user.id != teacher.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+
+    check_slot_data(slot_data, teacher.id, db)
 
     slot = Slot(
-        teacher_id=current_teacher.id,
+        teacher_id=teacher.id,
         day_of_week=slot_data.day_of_week,
         start_time=slot_data.start_time,
         end_time=slot_data.end_time
@@ -265,7 +277,7 @@ async def get_slot_full_info_by_id(
 async def delete_slot_by_id(
         slot_id: uuid.UUID,
         response: Response,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     slot = db.query(Slot).where(Slot.id == slot_id).first()
@@ -273,10 +285,10 @@ async def delete_slot_by_id(
         response.status_code = status.HTTP_204_NO_CONTENT
         return 'Слот уже удалён'
 
-    if current_teacher.id != slot.teacher.id:
+    if not current_user.admin and current_user.id != slot.teacher.user_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Преподаватель не связан с этим слотом'
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
         )
 
     db.delete(slot)
@@ -289,7 +301,7 @@ async def delete_slot_by_id(
 async def patch_slot(
         slot_id: uuid.UUID,
         slot_data: SlotUpdate,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     slot = db.query(Slot).where(Slot.id == slot_id).first()
@@ -298,13 +310,21 @@ async def patch_slot(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Слот не найден'
         )
-    if current_teacher.id != slot.teacher.id:
+    teacher = slot.teacher
+    if slot_data.teacher_id:
+        teacher = db.query(Teacher).where(Teacher.id == slot_data.teacher_id).first()
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Преподаватель не найден'
+            )
+    if not current_user.admin and current_user.id != teacher.user_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Преподаватель не связан с этим слотом'
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
         )
 
-    check_slot_data(slot_data, current_teacher.id, db, slot)
+    check_slot_data(slot_data, teacher.id, db, slot)
 
     for field, value in slot_data.model_dump(exclude_unset=True).items():
         setattr(slot, field, value)

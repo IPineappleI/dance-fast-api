@@ -20,13 +20,13 @@ router = APIRouter(
 )
 
 
-def check_teacher(teacher, current_teacher):
+def check_teacher(teacher, current_user):
     if not teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Преподаватель не найден'
         )
-    if teacher.id != current_teacher.id:
+    if not current_user.admin and current_user.id != teacher.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
@@ -156,7 +156,7 @@ async def patch_teacher(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Преподаватель не найден'
         )
-    if teacher.user_id != current_user.id and not current_user.admin:
+    if not current_user.admin and current_user.id != teacher.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
@@ -174,11 +174,11 @@ async def patch_teacher(
 async def create_teacher_lesson_type(
         teacher_id: uuid.UUID,
         lesson_type_id: uuid.UUID,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(Teacher).where(Teacher.id == teacher_id).first()
-    check_teacher(teacher, current_teacher)
+    check_teacher(teacher, current_user)
 
     lesson_type = db.query(LessonType).where(LessonType.id == lesson_type_id).first()
     if not lesson_type:
@@ -219,11 +219,11 @@ async def delete_teacher_lesson_type(
         teacher_id: uuid.UUID,
         lesson_type_id: uuid.UUID,
         response: Response,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(Teacher).where(Teacher.id == teacher_id).first()
-    check_teacher(teacher, current_teacher)
+    check_teacher(teacher, current_user)
 
     lesson_type = db.query(LessonType).where(LessonType.id == lesson_type_id).first()
     if not lesson_type:
@@ -341,11 +341,11 @@ async def delete_teacher_group(
 async def create_teacher_lesson(
         teacher_id: uuid.UUID,
         lesson_id: uuid.UUID,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(Teacher).where(Teacher.id == teacher_id).first()
-    check_teacher(teacher, current_teacher)
+    check_teacher(teacher, current_user)
 
     lesson = db.query(Lesson).where(Lesson.id == lesson_id).first()
     if not lesson:
@@ -393,11 +393,11 @@ async def delete_teacher_lesson(
         teacher_id: uuid.UUID,
         lesson_id: uuid.UUID,
         response: Response,
-        current_teacher: Teacher = Depends(get_current_teacher),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     teacher = db.query(Teacher).where(Teacher.id == teacher_id).first()
-    check_teacher(teacher, current_teacher)
+    check_teacher(teacher, current_user)
 
     lesson = db.query(Lesson).where(Lesson.id == lesson_id).first()
     if not lesson:

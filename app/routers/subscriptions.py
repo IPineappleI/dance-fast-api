@@ -48,13 +48,13 @@ def check_payment(payment):
         )
 
 
-def check_subscription(subscription, student_id):
+def check_subscription(subscription, current_user):
     if not subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Абонемент не найден'
         )
-    if subscription.student_id != student_id:
+    if not current_user.admin and current_user.id != subscription.student.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
@@ -69,7 +69,7 @@ def check_subscription(subscription, student_id):
 @router.post('/', response_model=SubscriptionInfo, status_code=status.HTTP_201_CREATED)
 async def create_subscription(
         subscription_data: SubscriptionCreate,
-        current_student: Student = Depends(get_current_student),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     student = db.query(Student).where(Student.id == subscription_data.student_id).first()
@@ -78,7 +78,7 @@ async def create_subscription(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Ученик не найден'
         )
-    if student.id != current_student.id:
+    if not current_user.admin and current_user.id != student.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
@@ -245,11 +245,11 @@ async def patch_subscription(
 async def create_lesson_subscription(
         subscription_id: uuid.UUID,
         lesson_id: uuid.UUID,
-        current_student: Student = Depends(get_current_student),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
-    check_subscription(subscription, current_student.id)
+    check_subscription(subscription, current_user)
     if subscription.lessons_left <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -296,7 +296,7 @@ async def create_lesson_subscription(
         )
 
     parallel_student_lesson = get_student_parallel_lesson(
-        current_student.id, lesson.start_time, lesson.finish_time, db
+        subscription.student_id, lesson.start_time, lesson.finish_time, db
     )
     if parallel_student_lesson:
         raise HTTPException(
@@ -322,11 +322,11 @@ async def create_lesson_subscription(
 async def cancel_lesson_subscription(
         subscription_id: uuid.UUID,
         lesson_id: uuid.UUID,
-        current_student: Student = Depends(get_current_student),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     subscription = db.query(Subscription).where(Subscription.id == subscription_id).first()
-    check_subscription(subscription, current_student.id)
+    check_subscription(subscription, current_user)
 
     lesson = db.query(Lesson).where(Lesson.id == lesson_id).first()
     if not lesson:

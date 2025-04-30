@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.jwt import get_current_user, get_current_student
 from app.database import get_db, TIMEZONE
 from app.routers.auth import patch_user
-from app.models import User, Admin, Student, Level, Group, Lesson, LessonType, \
-    Subscription, SubscriptionTemplate, Payment
+from app.models import User, Student, Level, Group, Lesson, Subscription, SubscriptionTemplate, Payment
 from app.models.association import *
 from app.schemas.student import *
 
@@ -122,7 +121,7 @@ async def patch_student(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Ученик не найден'
         )
-    if student.user_id != current_user.id and not current_user.admin:
+    if not current_user.admin and current_user.id != student.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
@@ -176,7 +175,7 @@ def get_fitting_subscriptions(student, group, db):
 async def create_student_group(
         student_id: uuid.UUID,
         group_id: uuid.UUID,
-        current_student: Student = Depends(get_current_student),
+        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     student = db.query(Student).where(Student.id == student_id).first()
@@ -185,7 +184,7 @@ async def create_student_group(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Ученик не найден'
         )
-    if student.id != current_student.id:
+    if not current_user.admin and current_user.id != student.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
@@ -265,13 +264,9 @@ async def delete_student_group(
             detail='Группа не активна'
         )
 
-    if student.user_id != current_user.id and not current_user.admin:
+    if not current_user.admin and current_user.id != student.user_id:
         if current_user.teacher:
-            teacher_group = db.query(TeacherGroup).where(
-                TeacherGroup.teacher_id == current_user.teacher.id,
-                TeacherGroup.group_id == group.id
-            ).first()
-            if not teacher_group:
+            if current_user.teacher not in group.teachers:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail='Преподаватель не связан с этой группой'
