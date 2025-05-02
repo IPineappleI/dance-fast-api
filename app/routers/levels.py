@@ -47,7 +47,6 @@ async def search_levels(
         desc: bool = True,
         offset: Annotated[int, Query(ge=0)] = 0,
         limit: Annotated[int, Query(gt=0, le=100)] = 20,
-        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     levels = db.query(Level)
