@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student, get_current_user
 from app.database import get_db, TIMEZONE
 from app.routers.classrooms import search_available_classrooms
-from app.models import User, Admin, Teacher, Student, Group, Lesson, LessonType, Classroom, Slot
+from app.models import User, Admin, Teacher, Student, Group, Lesson, LessonType, Classroom
 from app.models import Subscription, SubscriptionTemplate
 from app.models.association import *
 from app.schemas import SlotAvailableFilters
@@ -132,14 +132,15 @@ def get_and_check_group(group_id, db: Session):
 
 
 def create_subscription(student_id, lesson_type_id, db: Session):
-    subscription_template = db.query(SubscriptionTemplate).join(
-        SubscriptionLessonType
-    ).where(
-        or_(
-            SubscriptionTemplate.expiration_date == None,
-            SubscriptionTemplate.expiration_date > datetime.now(TIMEZONE)
-        ),
-        SubscriptionLessonType.lesson_type_id == lesson_type_id
+    subscription_template = db.query(SubscriptionTemplate).where(
+        db.query(SubscriptionLessonType).where(
+            SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id,
+            SubscriptionLessonType.lesson_type_id == lesson_type_id,
+            or_(
+                SubscriptionTemplate.expiration_date == None,
+                SubscriptionTemplate.expiration_date > datetime.now(TIMEZONE)
+            )
+        ).exists()
     ).order_by(
         SubscriptionTemplate.price
     ).first()
@@ -167,21 +168,20 @@ def create_subscription(student_id, lesson_type_id, db: Session):
 def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session):
     start_time = start_time.astimezone(TIMEZONE)
     finish_time = finish_time.astimezone(TIMEZONE)
-    teacher_parallel_lesson = db.query(Lesson).join(
-        TeacherLesson, and_(
+    teacher_parallel_lesson = db.query(Lesson).where(
+        db.query(TeacherLesson).where(
+            TeacherLesson.lesson_id == Lesson.id,
             TeacherLesson.teacher_id == teacher_id,
-            TeacherLesson.lesson_id == Lesson.id
-        )
-    ).where(
-        Lesson.terminated == False,
-        or_(
-            and_(start_time >= Lesson.start_time,
-                 start_time < Lesson.finish_time),
-            and_(finish_time > Lesson.start_time,
-                 finish_time <= Lesson.finish_time),
-            and_(start_time <= Lesson.start_time,
-                 finish_time >= Lesson.finish_time)
-        )
+            Lesson.terminated == False,
+            or_(
+                and_(start_time >= Lesson.start_time,
+                     start_time < Lesson.finish_time),
+                and_(finish_time > Lesson.start_time,
+                     finish_time <= Lesson.finish_time),
+                and_(start_time <= Lesson.start_time,
+                     finish_time >= Lesson.finish_time)
+            )
+        ).exists()
     ).first()
     return teacher_parallel_lesson
 
@@ -189,22 +189,22 @@ def get_teacher_parallel_lesson(teacher_id, start_time, finish_time, db: Session
 def get_student_parallel_lesson(student_id, start_time, finish_time, db: Session):
     start_time = start_time.astimezone(TIMEZONE)
     finish_time = finish_time.astimezone(TIMEZONE)
-    student_parallel_lesson = db.query(Lesson).join(
-        LessonSubscription, and_(
+    student_parallel_lesson = db.query(Lesson).where(
+        Lesson.terminated == False,
+        db.query(LessonSubscription).where(
             LessonSubscription.lesson_id == Lesson.id,
             LessonSubscription.cancelled == False
-        )
-    ).join(Subscription).where(
-        Subscription.student_id == student_id,
-        Lesson.terminated == False,
-        or_(
-            and_(start_time >= Lesson.start_time,
-                 start_time < Lesson.finish_time),
-            and_(finish_time > Lesson.start_time,
-                 finish_time <= Lesson.finish_time),
-            and_(start_time <= Lesson.start_time,
-                 finish_time >= Lesson.finish_time)
-        )
+        ).join(Subscription).where(
+            Subscription.student_id == student_id,
+            or_(
+                and_(start_time >= Lesson.start_time,
+                     start_time < Lesson.finish_time),
+                and_(finish_time > Lesson.start_time,
+                     finish_time <= Lesson.finish_time),
+                and_(start_time <= Lesson.start_time,
+                     finish_time >= Lesson.finish_time)
+            )
+        ).exists()
     ).first()
     return student_parallel_lesson
 
@@ -484,7 +484,7 @@ async def respond_to_lesson_request(
     return request
 
 
-def apply_filters_to_lessons(lessons, filters):
+def apply_filters_to_lessons(lessons, filters, db):
     if filters.date_from:
         filters.date_from = filters.date_from.astimezone(TIMEZONE)
         lessons = lessons.where(Lesson.start_time >= filters.date_from)
@@ -517,29 +517,29 @@ def apply_filters_to_lessons(lessons, filters):
         )
 
     if filters.subscription_template_ids:
-        lessons = lessons.join(
-            SubscriptionLessonType,
-            Lesson.lesson_type_id == SubscriptionLessonType.lesson_type_id
-        ).where(
-            SubscriptionLessonType.subscription_template_id.in_(filters.subscription_template_ids)
-        )
-
-    if filters.student_ids:
-        lessons = lessons.join(
-            LessonSubscription
-        ).where(
-            LessonSubscription.cancelled == False
-        ).join(
-            Subscription
-        ).where(
-            Subscription.student_id.in_(filters.student_ids)
+        lessons = lessons.where(
+            db.query(SubscriptionLessonType).where(
+                SubscriptionLessonType.lesson_type_id == Lesson.lesson_type_id,
+                SubscriptionLessonType.subscription_template_id.in_(filters.subscription_template_ids)
+            ).exists()
         )
 
     if filters.teacher_ids:
-        lessons = lessons.join(
-            TeacherLesson
-        ).where(
-            TeacherLesson.teacher_id.in_(filters.teacher_ids)
+        lessons = lessons.where(
+            db.query(TeacherLesson).where(
+                TeacherLesson.lesson_id == Lesson.id,
+                TeacherLesson.teacher_id.in_(filters.teacher_ids)
+            ).exists()
+        )
+
+    if filters.student_ids:
+        lessons = lessons.where(
+            db.query(LessonSubscription).where(
+                LessonSubscription.lesson_id == Lesson.id,
+                LessonSubscription.cancelled == False
+            ).join(Subscription).where(
+                Subscription.student_id.in_(filters.student_ids)
+            ).exists()
         )
 
     return lessons
@@ -562,7 +562,7 @@ async def search_lessons_admin(
         db: Session = Depends(get_db)
 ):
     lessons = db.query(Lesson)
-    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = apply_filters_to_lessons(lessons, filters, db)
     return LessonPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -582,7 +582,7 @@ async def search_lessons_admin_full_info(
         db: Session = Depends(get_db)
 ):
     lessons = db.query(Lesson)
-    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = apply_filters_to_lessons(lessons, filters, db)
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -604,7 +604,7 @@ async def search_teacher_lessons(
     filters.teacher_ids = [current_teacher.id]
 
     lessons = db.query(Lesson)
-    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = apply_filters_to_lessons(lessons, filters, db)
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -626,7 +626,7 @@ async def search_student_lessons(
     filters.student_ids = [current_student.id]
 
     lessons = db.query(Lesson)
-    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = apply_filters_to_lessons(lessons, filters, db)
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -637,7 +637,7 @@ async def search_student_lessons(
 
 @router.post('/search/group', response_model=LessonFullInfoPage)
 async def search_group_lessons(
-        filters: LessonFilters,
+        filters: LessonFiltersGroup,
         order_by: Annotated[str, AfterValidator(check_order_by)] = 'created_at',
         desc: bool = True,
         offset: Annotated[int, Query(ge=0)] = 0,
@@ -649,7 +649,26 @@ async def search_group_lessons(
     filters.student_ids = []
 
     lessons = db.query(Lesson)
-    lessons = apply_filters_to_lessons(lessons, filters)
+    lessons = apply_filters_to_lessons(lessons, filters, db)
+
+    if filters.is_participant is not None:
+        if current_user.teacher:
+            lessons = lessons.where(
+                db.query(TeacherLesson).where(
+                    TeacherLesson.lesson_id == Lesson.id,
+                    TeacherLesson.teacher_id == current_user.teacher.id
+                ).exists() == filters.is_participant
+            )
+        elif current_user.student:
+            lessons = lessons.where(
+                db.query(LessonSubscription).where(
+                    LessonSubscription.lesson_id == Lesson.id,
+                    LessonSubscription.cancelled == False
+                ).join(Subscription).where(
+                    Subscription.student_id == current_user.student.id
+                ).exists() == filters.is_participant
+            )
+
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))

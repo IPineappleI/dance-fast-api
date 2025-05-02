@@ -142,6 +142,13 @@ class LessonFilters(BaseModel):
         from_attributes = True
 
 
+class LessonFiltersGroup(LessonFilters):
+    is_participant: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
 class LessonUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
