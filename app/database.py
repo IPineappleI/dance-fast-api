@@ -47,7 +47,7 @@ def init_db():
                 # Создаем базу данных
                 cur.execute(f'CREATE DATABASE {DATABASE_NAME}')
                 print(f'База данных {DATABASE_NAME} успешно создана')
-                cur.execute(f"SET TIMEZONE = {TIMEZONE_NAME}")
+                cur.execute(f"SET TIMEZONE = '{TIMEZONE_NAME}'")
                 print(f'Выставлен часовой пояс {TIMEZONE_NAME}')
             else:
                 print(f'База данных {DATABASE_NAME} уже существует')

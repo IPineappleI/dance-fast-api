@@ -2,13 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
-from sqlalchemy import exists, or_, text
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
-from app.auth.jwt import get_current_user, get_current_student
+from app.auth.jwt import get_current_user
 from app.database import get_db, TIMEZONE
 from app.routers.auth import patch_user
-from app.models import User, Student, Level, Group, Lesson, Subscription, SubscriptionTemplate, Payment
+from app.models import User, Student, Level, Group, Lesson, Subscription, Payment
 from app.models.association import *
 from app.schemas.student import *
 
@@ -18,13 +18,17 @@ router = APIRouter(
 )
 
 
-def apply_filters_to_students(students, filters):
+def apply_filters_to_students(students, filters, db):
     if filters.level_ids:
         students = students.where(Student.level_id.in_(filters.level_ids))
 
     if filters.group_ids:
-        students = students.join(StudentGroup, Student.id == StudentGroup.student_id).where(
-            StudentGroup.group_id.in_(filters.group_ids))
+        students = students.where(
+            db.query(StudentGroup).where(
+                StudentGroup.student_id == Student.id,
+                StudentGroup.group_id.in_(filters.group_ids)
+            ).exists()
+        )
 
     if filters.terminated is not None:
         students = students.join(User).where(User.terminated == filters.terminated)
@@ -49,7 +53,7 @@ async def search_students(
         db: Session = Depends(get_db)
 ):
     students = db.query(Student)
-    students = apply_filters_to_students(students, filters)
+    students = apply_filters_to_students(students, filters, db)
     return StudentPage(
         students=students.order_by(
             text('students.' + order_by + (' DESC' if desc else ''))
@@ -69,7 +73,7 @@ async def search_students_full_info(
         db: Session = Depends(get_db)
 ):
     students = db.query(Student)
-    students = apply_filters_to_students(students, filters)
+    students = apply_filters_to_students(students, filters, db)
     return StudentFullInfoPage(
         students=students.order_by(
             text('students.' + order_by + (' DESC' if desc else ''))
@@ -132,18 +136,30 @@ async def patch_student(
         if not level:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail='Уровень подготовки не найден',
+                detail='Уровень подготовки не найден'
             )
         if level.terminated:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Уровень подготовки не активен',
+                detail='Уровень подготовки не активен'
             )
         student.level_id = student_data.level_id
         student_data.level_id = None
 
     if student_data.terminated:
         db.query(StudentGroup).where(StudentGroup.student_id == student_id).delete()
+
+        db.query(LessonSubscription).where(
+            LessonSubscription.cancelled == False,
+            db.query(Subscription).where(
+                Subscription.id == LessonSubscription.subscription_id,
+                Subscription.student_id == student_id
+            ).join(Lesson, Lesson.id == LessonSubscription.lesson_id).where(
+                Lesson.start_time >= datetime.now(TIMEZONE)
+            ).exists()
+        ).update(
+            {LessonSubscription.cancelled: True}
+        )
 
     patch_user(student.user_id, student_data, db)
 
@@ -153,20 +169,22 @@ async def patch_student(
 
 
 def get_fitting_subscriptions(student, group, db):
-    fitting_subscriptions = db.query(Subscription).join(SubscriptionTemplate).join(Payment).where(
+    fitting_subscriptions = db.query(Subscription).join(Payment).where(
         Subscription.student_id == student.id,
         or_(
             Subscription.expiration_date == None,
             Subscription.expiration_date > datetime.now(TIMEZONE)
         ),
         Payment.terminated == False,
-    ).where(~exists(Lesson).where(
-        Lesson.group_id == group.id,
-        Lesson.start_time > datetime.now(TIMEZONE),
-        Lesson.terminated == False,
-        Lesson.is_confirmed == True,
-        ~Lesson.lesson_type_id.in_(Subscription.lesson_type_ids)
-    )).all()
+        ~db.query(Lesson).where(
+            Lesson.group_id == group.id,
+            Lesson.start_time > datetime.now(TIMEZONE),
+            Lesson.terminated == False,
+            Lesson.is_confirmed == True,
+            ~Lesson.lesson_type_id.in_(Subscription.lesson_type_ids)
+        ).exists()
+    ).all()
+
     return fitting_subscriptions
 
 
@@ -285,17 +303,18 @@ async def delete_student_group(
         response.status_code = status.HTTP_204_NO_CONTENT
         return 'Ученик не связан с этой группой'
 
-    active_lesson_subscriptions = db.query(LessonSubscription).where(
-        LessonSubscription.cancelled == False
-    ).join(Subscription).where(
-        Subscription.student_id == student_id
-    ).join(Lesson).where(
-        Lesson.group_id == group_id,
-        Lesson.start_time > datetime.now(TIMEZONE)
-    ).all()
-
-    for lesson_subscription in active_lesson_subscriptions:
-        lesson_subscription.cancelled = True
+    db.query(LessonSubscription).where(
+        LessonSubscription.cancelled == False,
+        db.query(Subscription).where(
+            Subscription.id == LessonSubscription.subscription_id,
+            Subscription.student_id == student_id
+        ).join(Lesson, Lesson.id == LessonSubscription.lesson_id).where(
+            Lesson.group_id == group_id,
+            Lesson.start_time >= datetime.now(TIMEZONE)
+        ).exists()
+    ).update(
+        {LessonSubscription.cancelled: True}
+    )
 
     db.delete(existing_group)
     db.commit()

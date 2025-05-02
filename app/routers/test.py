@@ -1272,7 +1272,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     lesson8 = Lesson(
-        name='Заявка на индивидуальное занятие по танго',
+        name='Индивидуальное занятие по танго',
         lesson_type_id=lesson_type_tango_pair.id,
         start_time=datetime.now(TIMEZONE) + timedelta(days=11),
         finish_time=datetime.now(TIMEZONE) + timedelta(days=11) + timedelta(minutes=60),
@@ -1297,7 +1297,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     lesson9 = Lesson(
-        name='Заявка на индивидуальное занятие по хип-хопу',
+        name='Индивидуальное занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_indiv.id,
         start_time=datetime.now(TIMEZONE) + timedelta(days=3) + timedelta(minutes=9),
         finish_time=datetime.now(TIMEZONE) + timedelta(days=3) + timedelta(minutes=69),
@@ -1322,7 +1322,7 @@ async def create_test_data(db: Session = Depends(get_db)):
     db.commit()
 
     lesson10 = Lesson(
-        name='Заявка на индивидуальное занятие по хип-хопу',
+        name='Индивидуальное занятие по хип-хопу',
         lesson_type_id=lesson_type_hiphop_indiv.id,
         start_time=datetime.now(TIMEZONE) + timedelta(days=13),
         finish_time=datetime.now(TIMEZONE) + timedelta(days=13) + timedelta(minutes=50),

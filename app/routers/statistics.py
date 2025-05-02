@@ -14,12 +14,7 @@ router = APIRouter(
 )
 
 
-@router.post('/subscriptions', response_model=List[SubscriptionPurchasesInterval])
-async def get_subscription_purchases_statistics(
-        filters: SubscriptionPurchasesFilters,
-        current_admin: Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
-):
+def check_filters_intervals(filters):
     if filters.date_from > filters.date_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -31,11 +26,40 @@ async def get_subscription_purchases_statistics(
             detail='Интервал статистической выборки в днях должен быть положительным'
         )
 
+
+def apply_filters_to_subscription_purchases(interval_statistics, filters, db):
+    if filters.is_group is not None or filters.dance_style_ids:
+        interval_statistics = interval_statistics.where(
+            db.query(SubscriptionLessonType).where(
+                SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id
+            ).join(LessonType).where(
+                (LessonType.is_group == filters.is_group) if filters.is_group is not None else True,
+                (LessonType.dance_style_id.in_(filters.dance_style_ids)) if filters.dance_style_ids else True
+            ).exists()
+        )
+
+    if filters.subscription_template_ids:
+        interval_statistics = interval_statistics.where(
+            SubscriptionTemplate.id.in_(filters.subscription_template_ids)
+        )
+
+    return interval_statistics
+
+
+@router.post('/subscriptions', response_model=List[SubscriptionPurchasesInterval])
+async def get_subscription_purchases_statistics(
+        filters: SubscriptionPurchasesFilters,
+        current_admin: Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
+    check_filters_intervals(filters)
+
     statistics: List[SubscriptionPurchasesInterval] = []
 
     interval_date_from = filters.date_from
     while interval_date_from <= filters.date_to:
         interval_date_to = interval_date_from + timedelta(days=filters.interval_in_days)
+
         interval_statistics = db.query(
             func.count(Payment.id).label('count'),
             func.sum(SubscriptionTemplate.price).label('sum')
@@ -51,22 +75,8 @@ async def get_subscription_purchases_statistics(
             Payment.created_at < filters.date_to + timedelta(days=1)
         )
 
-        if filters.is_group is not None or filters.dance_style_ids:
-            interval_statistics = interval_statistics.where(db.query(LessonType).join(
-                SubscriptionLessonType,
-                and_(SubscriptionLessonType.lesson_type_id == LessonType.id,
-                     SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id)
-            ).where(
-                (LessonType.is_group == filters.is_group) if filters.is_group is not None else True,
-                (LessonType.dance_style_id.in_(filters.dance_style_ids)) if filters.dance_style_ids else True
-            ).exists())
+        interval_statistics = apply_filters_to_subscription_purchases(interval_statistics, filters, db).first()
 
-        if filters.subscription_template_ids:
-            interval_statistics = interval_statistics.where(
-                SubscriptionTemplate.id.in_(filters.subscription_template_ids)
-            )
-
-        interval_statistics = interval_statistics.first()
         interval_statistics = SubscriptionPurchasesInterval(
             date_from=interval_date_from,
             date_to=(

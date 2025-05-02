@@ -1,7 +1,13 @@
-from sqlalchemy import Column, ForeignKey, Boolean, DateTime, String
+from datetime import datetime
+
+from sqlalchemy import Column, ForeignKey, Boolean, DateTime, String, select, exists, or_
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
+from app.database import TIMEZONE
+from app.models.association import SubscriptionLessonType
+from app.models.subscription_template import SubscriptionTemplate
 from app.models.base import BaseModel
 
 
@@ -67,3 +73,22 @@ class Lesson(BaseModel):
         viewonly=True,
         back_populates='lessons'
     )
+
+    @hybrid_property
+    def fitting_subscription_templates(self):
+        return [subscription_template for subscription_template in self.subscription_templates
+                if not subscription_template.expiration_date
+                or subscription_template.expiration_date > datetime.now(TIMEZONE)]
+
+    @fitting_subscription_templates.expression
+    def fitting_subscription_templates(cls):
+        return select(SubscriptionTemplate).where(
+            or_(
+                SubscriptionTemplate.expiration_date == None,
+                SubscriptionTemplate.expiration_date > datetime.now(TIMEZONE)
+            ),
+            exists(SubscriptionLessonType).where(
+                SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id,
+                SubscriptionLessonType.lesson_type_id == cls.lesson_type_id
+            )
+        )

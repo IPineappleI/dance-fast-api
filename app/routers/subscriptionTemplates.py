@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from pydantic import AfterValidator
-from sqlalchemy import exists, and_, or_, text
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
@@ -67,30 +67,28 @@ async def create_subscription_template(
 def apply_filters_to_subscription_templates(subscription_templates, filters, db: Session):
     if filters.lesson_type_ids:
         subscription_templates = subscription_templates.where(
-            exists(
-                SubscriptionLessonType
-            ).where(
+            db.query(SubscriptionLessonType).where(
                 SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id,
                 SubscriptionLessonType.lesson_type_id.in_(filters.lesson_type_ids)
-            ))
+            ).exists()
+        )
 
     if filters.dance_style_ids:
-        subscription_templates = subscription_templates.where(db.query(LessonType).join(
-            SubscriptionLessonType,
-            and_(
-                SubscriptionLessonType.lesson_type_id == LessonType.id,
+        subscription_templates = subscription_templates.where(
+            db.query(SubscriptionLessonType).where(
                 SubscriptionLessonType.subscription_template_id == SubscriptionTemplate.id
-            )
-        ).where(
-            LessonType.dance_style_id.in_(filters.dance_style_ids)
-        ).exists())
+            ).join(LessonType).where(
+                LessonType.dance_style_id.in_(filters.dance_style_ids)
+            ).exists()
+        )
 
     if filters.is_expired is not None:
         subscription_templates = subscription_templates.where(
             or_(
                 SubscriptionTemplate.expiration_date == None,
                 SubscriptionTemplate.expiration_date > datetime.now(TIMEZONE)
-            ) != filters.is_expired)
+            ) != filters.is_expired
+        )
 
     return subscription_templates
 
@@ -148,7 +146,8 @@ async def get_subscription_template_by_id(
         db: Session = Depends(get_db)
 ):
     subscription_template = db.query(SubscriptionTemplate).where(
-        SubscriptionTemplate.id == subscription_template_id).first()
+        SubscriptionTemplate.id == subscription_template_id
+    ).first()
     if subscription_template is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -164,7 +163,8 @@ async def get_subscription_template_full_info_by_id(
         db: Session = Depends(get_db)
 ):
     subscription_template = db.query(SubscriptionTemplate).where(
-        SubscriptionTemplate.id == subscription_template_id).first()
+        SubscriptionTemplate.id == subscription_template_id
+    ).first()
     if subscription_template is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

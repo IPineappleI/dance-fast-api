@@ -6,7 +6,7 @@ from typing import Annotated
 
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
-from app.models import User, Admin, DanceStyle
+from app.models import User, Admin, DanceStyle, LessonType
 from app.schemas.danceStyle import *
 
 import uuid
@@ -92,6 +92,13 @@ async def patch_dance_style(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Стиль танца не найден'
+        )
+
+    if dance_style_data.terminated:
+        db.query(LessonType).where(
+            LessonType.dance_style_id == dance_style_id
+        ).update(
+            {LessonType.terminated: True}
         )
 
     for field, value in dance_style_data.model_dump(exclude_unset=True).items():

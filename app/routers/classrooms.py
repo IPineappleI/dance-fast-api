@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
-from sqlalchemy import exists, and_, or_, text
+from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session
 from typing import Annotated
 
@@ -84,19 +84,22 @@ async def search_available_classrooms(
     if filters.date_from < datetime.now(TIMEZONE):
         return ClassroomPage(classrooms=[], total=0)
 
-    classrooms = db.query(Classroom).where(Classroom.terminated == False).where(~exists(Lesson).where(
-        Lesson.classroom_id == Classroom.id,
-        Lesson.terminated == False,
-        or_(
-            filters.are_neighbours_allowed == False,
-            Lesson.are_neighbours_allowed == False
-        ),
-        or_(
-            and_(filters.date_from >= Lesson.start_time, filters.date_from < Lesson.finish_time),
-            and_(filters.date_to > Lesson.start_time, filters.date_to <= Lesson.finish_time),
-            and_(filters.date_from <= Lesson.start_time, filters.date_to >= Lesson.finish_time)
-        )
-    ))
+    classrooms = db.query(Classroom).where(
+        Classroom.terminated == False,
+        ~db.query(Lesson).where(
+            Lesson.classroom_id == Classroom.id,
+            Lesson.terminated == False,
+            or_(
+                filters.are_neighbours_allowed == False,
+                Lesson.are_neighbours_allowed == False
+            ),
+            or_(
+                and_(filters.date_from >= Lesson.start_time, filters.date_from < Lesson.finish_time),
+                and_(filters.date_to > Lesson.start_time, filters.date_to <= Lesson.finish_time),
+                and_(filters.date_from <= Lesson.start_time, filters.date_to >= Lesson.finish_time)
+            )
+        ).exists()
+    )
 
     return ClassroomPage(
         classrooms=classrooms.order_by(

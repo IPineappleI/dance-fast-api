@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
 from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.functions import current_user
 
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student, get_current_user
 from app.database import get_db, TIMEZONE
@@ -740,6 +741,17 @@ async def patch_lesson(
         else lesson.group_id
 
     await check_lesson_data(lesson_data, group_id, db, existing_lesson=lesson)
+
+    if lesson_data.terminated:
+        db.query(TeacherLesson).where(
+            TeacherLesson.lesson_id == lesson_id
+        ).delete()
+
+        db.query(LessonSubscription).where(
+            LessonSubscription.lesson_id == lesson_id
+        ).update(
+            {LessonSubscription.cancelled: True}
+        )
 
     for field, value in lesson_data.model_dump(exclude_unset=True).items():
         setattr(lesson, field, value)

@@ -6,7 +6,7 @@ from pydantic import AfterValidator
 from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import Session
 
-from app.auth.jwt import get_current_teacher, get_current_user
+from app.auth.jwt import get_current_user
 from app.database import get_db, TIMEZONE
 from app.routers.lessons import get_teacher_parallel_lesson
 from app.models import User, Teacher, Slot, TeacherLessonType
@@ -99,7 +99,7 @@ async def create_slot(
     return slot
 
 
-def apply_filters_to_slots(slots, filters):
+def apply_filters_to_slots(slots, filters, db):
     if filters.start_time:
         filters.start_time = astimezone(filters.start_time, TIMEZONE)
         slots = slots.where(Slot.start_time >= filters.start_time)
@@ -109,16 +109,16 @@ def apply_filters_to_slots(slots, filters):
 
     if filters.days_of_week:
         slots = slots.where(Slot.day_of_week.in_(filters.days_of_week))
+
     if filters.teacher_ids:
         slots = slots.where(Slot.teacher_id.in_(filters.teacher_ids))
 
     if filters.lesson_type_ids:
-        slots = slots.join(
-            Teacher
-        ).join(
-            TeacherLessonType
-        ).where(
-            TeacherLessonType.lesson_type_id.in_(filters.lesson_type_ids)
+        slots = slots.where(
+            db.query(TeacherLessonType).where(
+                TeacherLessonType.teacher_id == Slot.teacher_id,
+                TeacherLessonType.lesson_type_id.in_(filters.lesson_type_ids)
+            ).exists()
         )
 
     return slots
@@ -141,7 +141,7 @@ async def search_slots(
         db: Session = Depends(get_db)
 ):
     slots = db.query(Slot)
-    slots = apply_filters_to_slots(slots, filters)
+    slots = apply_filters_to_slots(slots, filters, db)
     return SlotPage(
         slots=slots.order_by(
             text('slots.' + order_by + (' DESC' if desc else ''))
@@ -161,7 +161,7 @@ async def search_slots_full_info(
         db: Session = Depends(get_db)
 ):
     slots = db.query(Slot)
-    slots = apply_filters_to_slots(slots, filters)
+    slots = apply_filters_to_slots(slots, filters, db)
     return SlotFullInfoPage(
         slots=slots.order_by(
             text('slots.' + order_by + (' DESC' if desc else ''))
@@ -225,20 +225,7 @@ async def search_available_slots(
         return []
 
     slots = db.query(Slot)
-
-    if filters.teacher_ids:
-        slots = slots.where(Slot.teacher_id.in_(filters.teacher_ids))
-
-    if filters.lesson_type_ids:
-        slots = slots.join(
-            Teacher
-        ).join(
-            TeacherLessonType
-        ).where(
-            TeacherLessonType.lesson_type_id.in_(filters.lesson_type_ids)
-        )
-
-    slots = slots.all()
+    slots = apply_filters_to_slots(slots, filters, db).all()
 
     return get_available_slots(slots, filters.date_from, filters.date_to, db)
 

@@ -2,14 +2,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
-from sqlalchemy import and_, or_, text
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
-from app.auth.jwt import get_current_student, get_current_admin, get_current_user
+from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db, TIMEZONE
 from app.routers.lessons import get_student_parallel_lesson
-from app.models import User, Admin, Student, Subscription, SubscriptionTemplate, Payment, Lesson, LessonSubscription
+from app.models import User, Admin, Student, Subscription, SubscriptionTemplate, Payment, Lesson
+from app.models.association import *
 from app.schemas.subscription import *
 from app.schemas import LessonFullInfo
 
@@ -126,7 +127,8 @@ def apply_filters_to_subscriptions(subscriptions, filters):
             or_(
                 Subscription.expiration_date == None,
                 Subscription.expiration_date > datetime.now(TIMEZONE)
-            ) != filters.is_expired)
+            ) != filters.is_expired
+        )
 
     return subscriptions
 
@@ -280,14 +282,10 @@ async def create_lesson_subscription(
             detail='Ученик не является членом группы'
         )
 
-    existing_lesson_subscription = db.query(LessonSubscription).join(
-        Subscription, and_(
-            Subscription.id == LessonSubscription.subscription_id,
-            Subscription.student_id == subscription.student_id
-        )
-    ).where(
-        LessonSubscription.cancelled == False,
-        LessonSubscription.lesson_id == lesson.id
+    existing_lesson_subscription = db.query(LessonSubscription).join(Subscription).where(
+        Subscription.student_id == subscription.student_id,
+        LessonSubscription.lesson_id == lesson.id,
+        LessonSubscription.cancelled == False
     ).first()
     if existing_lesson_subscription:
         raise HTTPException(
@@ -334,16 +332,28 @@ async def cancel_lesson_subscription(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Занятие не найдено'
         )
+    if lesson.start_time <= datetime.now(TIMEZONE) and not current_user.admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Занятие уже началось'
+        )
 
     lesson_subscription = db.query(LessonSubscription).where(
         LessonSubscription.subscription_id == subscription.id,
-        LessonSubscription.lesson_id == lesson.id,
+        LessonSubscription.lesson_id == lesson.id
     ).first()
     if not lesson_subscription:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Абонемент не связан с данным занятием'
         )
+
+    if not lesson.group_id:
+        db.query(TeacherLesson).where(
+            TeacherLesson.lesson_id == lesson_id
+        ).delete()
+
+        lesson.terminated = True
 
     lesson_subscription.cancelled = True
 

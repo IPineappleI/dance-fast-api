@@ -5,8 +5,8 @@ from pydantic import AfterValidator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.auth.jwt import get_current_admin, get_current_user, get_current_teacher
-from app.database import get_db
+from app.auth.jwt import get_current_admin, get_current_user
+from app.database import get_db, TIMEZONE
 from app.routers.lessons import get_teacher_parallel_lesson
 from app.routers.auth import create_user, patch_user
 from app.models import User, Admin, Teacher, Group, Lesson, LessonType
@@ -52,13 +52,21 @@ async def create_teacher(
     return teacher
 
 
-def apply_filters_to_teachers(teachers, filters):
+def apply_filters_to_teachers(teachers, filters, db):
     if filters.group_ids:
-        teachers = teachers.join(TeacherGroup).where(TeacherGroup.group_id.in_(filters.group_ids))
+        teachers = teachers.where(
+            db.query(TeacherGroup).where(
+                TeacherGroup.teacher_id == Teacher.id,
+                TeacherGroup.group_id.in_(filters.group_ids)
+            ).exists()
+        )
 
     if filters.lesson_type_ids:
-        teachers = teachers.join(TeacherLessonType).where(
-            TeacherLessonType.lesson_type_id.in_(filters.lesson_type_ids)
+        teachers = teachers.where(
+            db.query(TeacherLessonType).where(
+                TeacherLessonType.teacher_id == Teacher.id,
+                TeacherLessonType.lesson_type_id.in_(filters.lesson_type_ids)
+            ).exists()
         )
 
     if filters.terminated is not None:
@@ -84,7 +92,7 @@ async def search_teachers(
         db: Session = Depends(get_db)
 ):
     teachers = db.query(Teacher)
-    teachers = apply_filters_to_teachers(teachers, filters)
+    teachers = apply_filters_to_teachers(teachers, filters, db)
     return TeacherPage(
         teachers=teachers.order_by(
             text('teachers.' + order_by + (' DESC' if desc else ''))
@@ -104,7 +112,7 @@ async def search_teachers_full_info(
         db: Session = Depends(get_db)
 ):
     teachers = db.query(Teacher)
-    teachers = apply_filters_to_teachers(teachers, filters)
+    teachers = apply_filters_to_teachers(teachers, filters, db)
     return TeacherFullInfoPage(
         teachers=teachers.order_by(
             text('teachers.' + order_by + (' DESC' if desc else ''))
@@ -161,6 +169,17 @@ async def patch_teacher(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
         )
+
+    if teacher_data.terminated:
+        db.query(TeacherGroup).where(TeacherGroup.teacher_id == teacher_id).delete()
+
+        db.query(TeacherLesson).where(
+            TeacherLesson.teacher_id == teacher_id,
+            db.query(Lesson).where(
+                Lesson.id == TeacherLesson.lesson_id,
+                Lesson.start_time >= datetime.now(TIMEZONE)
+            ).exists()
+        ).delete()
 
     patch_user(teacher.user_id, teacher_data, db)
 
@@ -330,6 +349,15 @@ async def delete_teacher_group(
         response.status_code = status.HTTP_204_NO_CONTENT
         return 'Преподаватель не связан с этой группой'
 
+    db.query(TeacherLesson).where(
+        TeacherLesson.teacher_id == teacher_id,
+        db.query(Lesson).where(
+            Lesson.id == TeacherLesson.lesson_id,
+            Lesson.group_id == group_id,
+            Lesson.start_time >= datetime.now(TIMEZONE)
+        ).exists()
+    ).delete()
+
     db.delete(existing_group)
     db.commit()
 
@@ -405,6 +433,11 @@ async def delete_teacher_lesson(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Занятие не найдено'
         )
+    if lesson.start_time <= datetime.now(TIMEZONE) and not current_user.admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Занятие уже началось'
+        )
 
     existing_lesson = db.query(TeacherLesson).where(
         TeacherLesson.teacher_id == teacher_id,
@@ -413,6 +446,15 @@ async def delete_teacher_lesson(
     if not existing_lesson:
         response.status_code = status.HTTP_204_NO_CONTENT
         return 'Преподаватель не связан с этим занятием'
+
+    if not lesson.group_id:
+        db.query(LessonSubscription).where(
+            LessonSubscription.lesson_id == lesson_id
+        ).update(
+            {LessonSubscription.cancelled: True}
+        )
+
+        lesson.terminated = True
 
     db.delete(existing_lesson)
     db.commit()

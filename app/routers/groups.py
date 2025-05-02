@@ -2,12 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
-from sqlalchemy import exists, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
-from app.database import get_db
-from app.models import User, Admin, Group, Level, TeacherGroup, StudentGroup, Lesson, LessonType
+from app.database import get_db, TIMEZONE
+from app.models import User, Admin, Group, Level, Lesson, LessonType
+from app.models.association import *
 from app.routers.students import get_fitting_subscriptions
 from app.schemas.group import *
 
@@ -55,26 +56,45 @@ async def create_group(
     return group
 
 
-def apply_filters_to_groups(groups: Query, filters):
+def apply_filters_to_groups(groups: Query, filters, db):
     if filters.has_teachers is not None:
-        groups = groups.where((exists(TeacherGroup).where(
-            TeacherGroup.group_id == Group.id
-        )) == filters.has_teachers)
+        groups = groups.where(
+            db.query(TeacherGroup).where(
+                TeacherGroup.group_id == Group.id
+            ).exists() == filters.has_teachers
+        )
     if filters.teacher_ids:
-        groups = groups.join(TeacherGroup).where(TeacherGroup.teacher_id.in_(filters.teacher_ids))
+        groups = groups.where(
+            db.query(TeacherGroup).where(
+                TeacherGroup.group_id == Group.id,
+                TeacherGroup.teacher_id.in_(filters.teacher_ids)
+            ).exists()
+        )
 
     if filters.has_students is not None:
-        groups = groups.where((exists(StudentGroup).where(
-            StudentGroup.group_id == Group.id
-        )) == filters.has_students)
-
+        groups = groups.where(
+            db.query(StudentGroup).where(
+                StudentGroup.group_id == Group.id
+            ).exists() == filters.has_students
+        )
     if filters.student_ids:
-        groups = groups.join(StudentGroup).where(StudentGroup.student_id.in_(filters.student_ids))
+        groups = groups.where(
+            db.query(StudentGroup).where(
+                StudentGroup.group_id == Group.id,
+                StudentGroup.student_id.in_(filters.student_ids)
+            ).exists()
+        )
+
     if filters.level_ids:
         groups = groups.where(Group.level_id.in_(filters.level_ids))
+
     if filters.dance_style_ids:
-        groups = groups.join(Lesson).join(LessonType).where(
-            LessonType.dance_style_id.in_(filters.dance_style_ids)
+        groups = groups.where(
+            db.query(Lesson).where(
+                Lesson.group_id == Group.id
+            ).join(LessonType).where(
+                LessonType.dance_style_id.in_(filters.dance_style_ids)
+            ).exists()
         )
 
     if filters.terminated is not None:
@@ -100,7 +120,7 @@ async def search_groups(
         db: Session = Depends(get_db)
 ):
     groups = db.query(Group)
-    groups = apply_filters_to_groups(groups, filters)
+    groups = apply_filters_to_groups(groups, filters, db)
     return GroupPage(
         groups=groups.order_by(
             text('groups.' + order_by + (' DESC' if desc else ''))
@@ -120,7 +140,7 @@ async def search_groups_full_info(
         db: Session = Depends(get_db)
 ):
     groups = db.query(Group)
-    groups = apply_filters_to_groups(groups, filters)
+    groups = apply_filters_to_groups(groups, filters, db)
     return GroupFullInfoPage(
         groups=groups.order_by(
             text('groups.' + order_by + (' DESC' if desc else ''))
@@ -195,6 +215,35 @@ async def patch_group(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Уровень подготовки не активен'
             )
+
+    if group_data.terminated:
+        db.query(TeacherGroup).where(
+            TeacherGroup.group_id == group_id
+        ).delete()
+
+        db.query(StudentGroup).where(
+            StudentGroup.group_id == group_id
+        ).delete()
+
+        group_lessons = db.query(Lesson).where(
+            Lesson.group_id == group_id,
+            Lesson.start_time >= datetime.now(TIMEZONE)
+        )
+        group_lessons.update(
+            {Lesson.terminated: True}
+        )
+
+        group_lesson_ids = [group_lesson.id for group_lesson in group_lessons.all()]
+
+        db.query(TeacherLesson).where(
+            TeacherLesson.lesson_id.in_(group_lesson_ids)
+        ).delete()
+
+        db.query(LessonSubscription).where(
+            LessonSubscription.lesson_id.in_(group_lesson_ids)
+        ).update(
+            {LessonSubscription.cancelled: True}
+        )
 
     for field, value in group_data.model_dump(exclude_unset=True).items():
         setattr(group, field, value)

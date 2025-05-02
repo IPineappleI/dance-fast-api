@@ -48,12 +48,17 @@ async def create_payment(
     return payment
 
 
-def apply_filters_to_payments(payments, filters):
+def apply_filters_to_payments(payments, filters, db):
     if filters.payment_type_ids:
         payments = payments.where(Payment.payment_type_id.in_(filters.payment_type_ids))
 
     if filters.student_id:
-        payments = payments.join(Subscription).where(Subscription.student_id == filters.student_id)
+        payments = payments.where(
+            db.query(Subscription).where(
+                Subscription.payment_id == Payment.id,
+                Subscription.student_id == filters.student_id
+            ).exists()
+        )
 
     if filters.terminated is not None:
         payments = payments.where(Payment.terminated == filters.terminated)
@@ -78,7 +83,7 @@ async def search_payments(
         db: Session = Depends(get_db)
 ):
     payments = db.query(Payment)
-    payments = apply_filters_to_payments(payments, filters)
+    payments = apply_filters_to_payments(payments, filters, db)
     return PaymentPage(
         payments=payments.order_by(
             text('payments.' + order_by + (' DESC' if desc else ''))
@@ -98,7 +103,7 @@ async def search_payments_full_info(
         db: Session = Depends(get_db)
 ):
     payments = db.query(Payment)
-    payments = apply_filters_to_payments(payments, filters)
+    payments = apply_filters_to_payments(payments, filters, db)
     return PaymentFullInfoPage(
         payments=payments.order_by(
             text('payments.' + order_by + (' DESC' if desc else ''))

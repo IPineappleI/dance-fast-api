@@ -88,7 +88,7 @@ class LessonInfo(LessonCreate):
 class LessonFullInfo(LessonInfo):
     lesson_type: LessonTypeFullInfo
     classroom: Optional[ClassroomInfo] = None
-    subscription_templates: List[SubscriptionTemplateFullInfo]
+    fitting_subscription_templates: List[SubscriptionTemplateFullInfo]
     group: Optional[GroupFullInfo] = None
     actual_students: List[StudentMoreInfo]
     actual_teachers: List[TeacherMoreInfo]
