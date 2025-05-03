@@ -225,9 +225,19 @@ async def search_available_slots(
         return []
 
     slots = db.query(Slot)
-    slots = apply_filters_to_slots(slots, filters, db).all()
 
-    return get_available_slots(slots, filters.date_from, filters.date_to, db)
+    if filters.teacher_ids:
+        slots = slots.where(Slot.teacher_id.in_(filters.teacher_ids))
+
+    if filters.lesson_type_ids:
+        slots = slots.where(
+            db.query(TeacherLessonType).where(
+                TeacherLessonType.teacher_id == Slot.teacher_id,
+                TeacherLessonType.lesson_type_id.in_(filters.lesson_type_ids)
+            ).exists()
+        )
+
+    return get_available_slots(slots.all(), filters.date_from, filters.date_to, db)
 
 
 @router.get('/{slot_id}', response_model=SlotInfo)
