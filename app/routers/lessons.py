@@ -651,13 +651,28 @@ async def search_group_lessons(
     lessons = db.query(Lesson)
     lessons = apply_filters_to_lessons(lessons, filters, db)
 
-    if filters.is_participant is not None:
+    if filters.in_group is not None:
+        if current_user.teacher:
+            lessons = lessons.where(
+                db.query(TeacherGroup).where(
+                    TeacherGroup.group_id == Lesson.group_id,
+                    TeacherGroup.teacher_id == current_user.teacher.id
+                ).exists() == filters.in_group
+            )
+        elif current_user.student:
+            lessons = lessons.where(
+                db.query(StudentGroup).where(
+                    StudentGroup.group_id == Lesson.group_id,
+                    StudentGroup.student_id == current_user.student.id
+                ).exists() == filters.in_group
+            )
+    if filters.in_lesson is not None:
         if current_user.teacher:
             lessons = lessons.where(
                 db.query(TeacherLesson).where(
                     TeacherLesson.lesson_id == Lesson.id,
                     TeacherLesson.teacher_id == current_user.teacher.id
-                ).exists() == filters.is_participant
+                ).exists() == filters.in_lesson
             )
         elif current_user.student:
             lessons = lessons.where(
@@ -666,7 +681,7 @@ async def search_group_lessons(
                     LessonSubscription.cancelled == False
                 ).join(Subscription).where(
                     Subscription.student_id == current_user.student.id
-                ).exists() == filters.is_participant
+                ).exists() == filters.in_lesson
             )
 
     return LessonFullInfoPage(

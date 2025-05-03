@@ -143,7 +143,8 @@ class LessonFilters(BaseModel):
 
 
 class LessonFiltersGroup(LessonFilters):
-    is_participant: Optional[bool] = None
+    in_group: Optional[bool] = None
+    in_lesson: Optional[bool] = None
 
     class Config:
         from_attributes = True
