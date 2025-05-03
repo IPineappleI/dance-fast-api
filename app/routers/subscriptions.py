@@ -340,7 +340,8 @@ async def cancel_lesson_subscription(
 
     lesson_subscription = db.query(LessonSubscription).where(
         LessonSubscription.subscription_id == subscription.id,
-        LessonSubscription.lesson_id == lesson.id
+        LessonSubscription.lesson_id == lesson.id,
+        LessonSubscription.cancelled == False
     ).first()
     if not lesson_subscription:
         raise HTTPException(

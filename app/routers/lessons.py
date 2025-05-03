@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import AfterValidator
 from sqlalchemy import or_, and_, text
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.functions import current_user
 
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student, get_current_user
 from app.database import get_db, TIMEZONE
