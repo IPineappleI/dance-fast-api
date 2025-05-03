@@ -526,20 +526,32 @@ def apply_filters_to_lessons(lessons, filters, db):
 
     if filters.teacher_ids:
         lessons = lessons.where(
-            db.query(TeacherLesson).where(
-                TeacherLesson.lesson_id == Lesson.id,
-                TeacherLesson.teacher_id.in_(filters.teacher_ids)
-            ).exists()
+            or_(
+                db.query(TeacherLesson).where(
+                    TeacherLesson.lesson_id == Lesson.id,
+                    TeacherLesson.teacher_id.in_(filters.teacher_ids)
+                ).exists(),
+                db.query(TeacherGroup).where(
+                    TeacherGroup.group_id == Lesson.group_id,
+                    TeacherGroup.teacher_id.in_(filters.teacher_ids)
+                ).exists()
+            )
         )
 
     if filters.student_ids:
         lessons = lessons.where(
-            db.query(LessonSubscription).where(
-                LessonSubscription.lesson_id == Lesson.id,
-                LessonSubscription.cancelled == False
-            ).join(Subscription).where(
-                Subscription.student_id.in_(filters.student_ids)
-            ).exists()
+            or_(
+                db.query(LessonSubscription).where(
+                    LessonSubscription.lesson_id == Lesson.id,
+                    LessonSubscription.cancelled == False
+                ).join(Subscription).where(
+                    Subscription.student_id.in_(filters.student_ids)
+                ).exists(),
+                db.query(StudentGroup).where(
+                    StudentGroup.group_id == Lesson.group_id,
+                    StudentGroup.student_id.in_(filters.student_ids)
+                ).exists()
+            )
         )
 
     return lessons
@@ -583,6 +595,10 @@ async def search_lessons_admin_full_info(
 ):
     lessons = db.query(Lesson)
     lessons = apply_filters_to_lessons(lessons, filters, db)
+
+    for lesson in lessons:
+        lesson.is_going_to_participate = False
+
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -605,6 +621,10 @@ async def search_teacher_lessons(
 
     lessons = db.query(Lesson)
     lessons = apply_filters_to_lessons(lessons, filters, db)
+
+    for lesson in lessons:
+        lesson.is_going_to_participate = current_teacher in lesson.actual_teachers
+
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -627,6 +647,10 @@ async def search_student_lessons(
 
     lessons = db.query(Lesson)
     lessons = apply_filters_to_lessons(lessons, filters, db)
+
+    for lesson in lessons:
+        lesson.is_going_to_participate = current_student in lesson.actual_students
+
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -684,6 +708,14 @@ async def search_group_lessons(
                 ).exists() == filters.in_lesson
             )
 
+    for lesson in lessons:
+        if current_user.teacher:
+            lesson.is_going_to_participate = current_user.teacher in lesson.actual_teachers
+        elif current_user.student:
+            lesson.is_going_to_participate = current_user.student in lesson.actual_students
+        else:
+            lesson.is_going_to_participate = False
+
     return LessonFullInfoPage(
         lessons=lessons.order_by(
             text('lessons.' + order_by + (' DESC' if desc else ''))
@@ -720,7 +752,11 @@ async def get_lesson_full_info_by_id(
             detail='Занятие не найдено'
         )
 
-    if current_user.student:
+    if current_user.teacher:
+        lesson.is_going_to_participate = current_user.teacher in lesson.actual_teachers
+    elif current_user.student:
+        lesson.is_going_to_participate = current_user.student in lesson.actual_students
+
         if current_user.student not in lesson.actual_students:
             lesson.fitting_subscriptions = [subscription for subscription in current_user.student.subscriptions
                                             if lesson.lesson_type in subscription.subscription_template.lesson_types
@@ -730,6 +766,8 @@ async def get_lesson_full_info_by_id(
         else:
             lesson.used_subscription = [subscription for subscription in current_user.student.subscriptions
                                         if lesson in subscription.lessons][0]
+    else:
+        lesson.is_going_to_participate = False
 
     return lesson
 

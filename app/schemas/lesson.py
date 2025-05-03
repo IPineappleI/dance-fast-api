@@ -92,6 +92,7 @@ class LessonFullInfo(LessonInfo):
     group: Optional[GroupFullInfo] = None
     actual_students: List[StudentMoreInfo]
     actual_teachers: List[TeacherMoreInfo]
+    is_going_to_participate: Optional[bool] = True
 
     class Config:
         from_attributes = True
