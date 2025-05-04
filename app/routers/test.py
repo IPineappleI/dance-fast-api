@@ -17,6 +17,7 @@ router = APIRouter(
 async def create_test_data(db: Session = Depends(get_db)):
     user_admin = User(
         email='max@admin.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Максим',
         last_name='Исмаилов',
@@ -50,6 +51,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner1 = User(
         email='beginner1@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Иван',
         last_name='Иванов',
@@ -70,6 +72,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner2 = User(
         email='beginner2@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Максим',
         last_name='Максимов',
@@ -90,6 +93,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner3 = User(
         email='beginner3@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Пётр',
         last_name='Петров',
@@ -109,6 +113,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner4 = User(
         email='beginner4@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Алексей',
         last_name='Алексеев',
@@ -128,6 +133,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner5 = User(
         email='beginner5@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Андрей',
         last_name='Андреев',
@@ -147,6 +153,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner6 = User(
         email='beginner6@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Сара',
         last_name='Штайнберг',
@@ -165,6 +172,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner7 = User(
         email='beginner7@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Анна',
         last_name='Яблочкина',
@@ -184,6 +192,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner8 = User(
         email='beginner8@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Анастасия',
         last_name='Зорина',
@@ -203,6 +212,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner9 = User(
         email='beginner9@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Мария',
         last_name='Городовая',
@@ -222,6 +232,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_beginner10 = User(
         email='beginner10@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Антонина',
         last_name='Пушкина',
@@ -241,6 +252,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_advanced1 = User(
         email='advanced1@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Аристарх',
         last_name='Свирилов',
@@ -261,6 +273,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_advanced2 = User(
         email='advanced2@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Елена',
         last_name='Марьина',
@@ -281,6 +294,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_advanced3 = User(
         email='advanced3@student.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Михаил',
         last_name='Наумов',
@@ -301,6 +315,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_teacher1 = User(
         email='teacher@teacher.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Семён',
         last_name='Павлов',
@@ -320,6 +335,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_teacher2 = User(
         email='teacher2@teacher.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Ульяна',
         last_name='Полейко',
@@ -339,6 +355,7 @@ async def create_test_data(db: Session = Depends(get_db)):
 
     user_teacher3 = User(
         email='teacher3@teacher.com',
+        email_confirmed=True,
         hashed_password=get_password_hash('12345678'),
         first_name='Станислав',
         last_name='Филиппов',

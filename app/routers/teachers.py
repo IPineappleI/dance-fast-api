@@ -39,7 +39,7 @@ async def create_teacher(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    user = create_user(teacher_data, db)
+    user = await create_user(teacher_data, db)
 
     teacher = Teacher(
         user_id=user.id
@@ -181,7 +181,7 @@ async def patch_teacher(
             ).exists()
         ).delete()
 
-    patch_user(teacher.user_id, teacher_data, db)
+    await patch_user(teacher.user_id, teacher_data, db)
 
     db.refresh(teacher)
 

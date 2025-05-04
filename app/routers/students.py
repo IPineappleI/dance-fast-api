@@ -161,7 +161,7 @@ async def patch_student(
             {LessonSubscription.cancelled: True}
         )
 
-    patch_user(student.user_id, student_data, db)
+    await patch_user(student.user_id, student_data, db)
 
     db.refresh(student)
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from email_validator import validate_email
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 import uuid
@@ -8,6 +8,7 @@ import uuid
 class UserInfo(BaseModel):
     id: uuid.UUID
     email: EmailStr
+    email_confirmed: bool
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
@@ -29,11 +30,15 @@ class UserCreate(BaseModel):
     phone_number: str
     password: str
 
+    @field_validator('email')
+    def validate_email(cls, email):
+        return validate_email(email).normalized
+
     @field_validator('password')
-    def password_strength(cls, v):
-        if len(v) < 8:
+    def validate_password(cls, password):
+        if len(password) < 8:
             raise ValueError('Пароль должен содержать минимум 8 символов')
-        return v
+        return password
 
     class Config:
         from_attributes = True

@@ -8,6 +8,7 @@ class User(BaseModel):
     __tablename__ = 'users'
 
     email = Column(String(255), unique=True, nullable=False, index=True)
+    email_confirmed = Column(Boolean, nullable=False, default=False)
     hashed_password = Column(String(255), nullable=False)
     first_name = Column(String, nullable=False)
     middle_name = Column(String, nullable=True)

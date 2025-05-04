@@ -4,15 +4,22 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from email.message import EmailMessage
 
+from app.config import settings
 from app.database import get_db
 from app.auth.password import verify_password, get_password_hash
-from app.auth.jwt import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
+from app.auth.jwt import create_token, get_current_user, verify_token
+from app.email import send_email
 from app.models import User, Admin, Teacher, Student, Level
 from app.schemas.token import *
 from app.schemas.admin import *
 from app.schemas.teacher import *
 from app.schemas.student import *
+
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+
+EMAIL_CONFIRMATION_TOKEN_EXPIRE_MINUTES = settings.EMAIL_CONFIRMATION_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(
     prefix='/auth',
@@ -20,7 +27,24 @@ router = APIRouter(
 )
 
 
-def create_user(user_data, db: Session):
+async def send_email_confirmation_token(user_id, email):
+    expires_delta = timedelta(minutes=EMAIL_CONFIRMATION_TOKEN_EXPIRE_MINUTES)
+
+    email_confirmation_token = create_token(
+        data={'user_id': str(user_id)},
+        expires_delta=expires_delta
+    )
+
+    message = EmailMessage()
+    message['To'] = email
+    message['Subject'] = 'Школа танцев. Подтверждение адреса электронной почты'
+    message.set_content(f'Пожалуйста, подтвердите адрес электронной почты, перейдя по следующей ссылке:\n'
+                        f'http://localhost:8000/auth/confirm-email/{email_confirmation_token}')
+
+    await send_email(message)
+
+
+async def create_user(user_data, db: Session):
     email_user = db.query(User).where(User.email == user_data.email).first()
     if email_user:
         raise HTTPException(
@@ -49,10 +73,17 @@ def create_user(user_data, db: Session):
 
     db.commit()
 
+    try:
+        await send_email_confirmation_token(user.id, user.email)
+    except Exception as e:
+        db.query(User).where(User.id == user.id).delete()
+        db.commit()
+        raise e
+
     return user
 
 
-def patch_user(user_id, user_data: UserUpdate, db: Session):
+async def patch_user(user_id, user_data: UserUpdate, db: Session):
     user = db.query(User).where(User.id == user_id).first()
     if not user:
         raise HTTPException(
@@ -73,14 +104,6 @@ def patch_user(user_id, user_data: UserUpdate, db: Session):
             )
         user.hashed_password = get_password_hash(user_data.new_password)
 
-    if user_data.email:
-        email_user = db.query(User).where(User.email == user_data.email).first()
-        if email_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Email уже используется'
-            )
-
     if user_data.phone_number:
         phone_user = db.query(User).where(User.phone_number == user_data.phone_number).first()
         if phone_user:
@@ -88,6 +111,16 @@ def patch_user(user_id, user_data: UserUpdate, db: Session):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Номер телефона уже используется'
             )
+
+    if user_data.email:
+        email_user = db.query(User).where(User.email == user_data.email).first()
+        if email_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Email уже используется'
+            )
+        await send_email_confirmation_token(user.id, user_data.email)
+        user.email_confirmed = False
 
     for field, value in user_data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
@@ -112,7 +145,7 @@ async def register_student(
             detail='Уровень подготовки не активен'
         )
 
-    user = create_user(student_data, db)
+    user = await create_user(student_data, db)
 
     student = Student(
         user_id=user.id,
@@ -139,20 +172,54 @@ async def login_for_access_token(
             detail='Неверный email или пароль',
             headers={'WWW-Authenticate': 'Bearer'}
         )
+    if user.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Ваш аккаунт был деактивирован'
+        )
+    if not user.email_confirmed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Пожалуйста, подтвердите адрес электронной почты'
+        )
 
+    expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    access_token = create_token(
+        data={'user_id': str(user.id)},
+        expires_delta=expires_delta
+    )
+
+    return {'access_token': access_token, 'token_type': 'bearer'}
+
+
+@router.get('/confirm-email/{confirmation_token}', response_model=UserInfo)
+async def confirm_email(
+        confirmation_token: str,
+        db: Session = Depends(get_db)
+):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail='Невалидный токен подтверждения адреса электронной почты',
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+
+    token_data = verify_token(confirmation_token, credentials_exception)
+
+    user = db.query(User).where(User.id == token_data.id).first()
+    if user is None:
+        raise credentials_exception
     if user.terminated:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Ваш аккаунт был деактивирован'
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={'sub': str(user.id)},
-        expires_delta=access_token_expires
-    )
+    user.email_confirmed = True
+    db.commit()
+    db.refresh(user)
 
-    return {'access_token': access_token, 'token_type': 'bearer'}
+    return user
 
 
 @router.get('/me', response_model=Union[StudentFullInfoWithRole, TeacherFullInfoWithRole, AdminFullInfoWithRole])

@@ -23,7 +23,7 @@ async def create_admin(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    user = create_user(admin_data, db)
+    user = await create_user(admin_data, db)
 
     admin = Admin(
         user_id=user.id
@@ -132,7 +132,7 @@ async def patch_admin(
             detail='Администратор не найден'
         )
 
-    patch_user(admin.user_id, admin_data, db)
+    await patch_user(admin.user_id, admin_data, db)
 
     db.refresh(admin)
 
