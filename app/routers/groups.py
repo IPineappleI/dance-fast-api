@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db, TIMEZONE
+from app.email import send_new_group_email
 from app.models import User, Admin, Group, Level, Lesson, LessonType
 from app.models.association import *
 from app.routers.students import get_fitting_subscriptions
@@ -51,6 +52,9 @@ async def create_group(
 
     db.add(group)
     db.commit()
+
+    await send_new_group_email(group, db)
+
     db.refresh(group)
 
     return group

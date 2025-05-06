@@ -6,6 +6,7 @@ from typing import Annotated
 
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db, TIMEZONE
+from app.email import send_new_classroom_email, send_classroom_terminated_email
 from app.models import Classroom, User, Admin, Lesson
 from app.schemas.classroom import *
 
@@ -30,6 +31,9 @@ async def create_classroom(
 
     db.add(classroom)
     db.commit()
+
+    await send_new_classroom_email(classroom, db)
+
     db.refresh(classroom)
 
     return classroom
@@ -138,8 +142,15 @@ async def patch_classroom(
             detail='Зал не найден'
         )
 
+    old_terminated = classroom.terminated
+
     for field, value in classroom_data.model_dump(exclude_unset=True).items():
         setattr(classroom, field, value)
+
+    if classroom.terminated and not old_terminated:
+        await send_classroom_terminated_email(classroom, db)
+    elif not classroom.terminated and old_terminated:
+        await send_new_classroom_email(classroom, db)
 
     db.commit()
     db.refresh(classroom)

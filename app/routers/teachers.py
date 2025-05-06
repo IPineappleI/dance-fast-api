@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db, TIMEZONE
+from app.email import send_new_teacher_email, send_teacher_terminated_email
 from app.routers.lessons import get_teacher_parallel_lesson
 from app.routers.auth import create_user, patch_user
 from app.models import User, Admin, Teacher, Group, Lesson, LessonType
@@ -47,6 +48,9 @@ async def create_teacher(
 
     db.add(teacher)
     db.commit()
+
+    await send_new_teacher_email(teacher, db)
+
     db.refresh(teacher)
 
     return teacher
@@ -181,7 +185,14 @@ async def patch_teacher(
             ).exists()
         ).delete()
 
+    old_terminated = teacher.user.terminated
+
     await patch_user(teacher.user_id, teacher_data, db)
+
+    if teacher.user.terminated and not old_terminated:
+        await send_teacher_terminated_email(teacher, db)
+    elif not teacher.user.terminated and old_terminated:
+        await send_new_teacher_email(teacher, db)
 
     db.refresh(teacher)
 

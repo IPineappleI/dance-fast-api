@@ -8,13 +8,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Принудительно устанавливаем правильный URL соединения
 DATABASE_URL = 'postgresql://postgres:postgrya@localhost:5432/dance_api'
 DATABASE_NAME = 'dance_api'
 
 print(f'Используемый DATABASE_URL: {DATABASE_URL}')
 
-# Устанавливаем параметры подключения напрямую
 user = 'postgres'
 password = 'postgrya'
 host = 'localhost'
@@ -26,8 +24,8 @@ print(f'Используемые параметры: user={user}, host={host}, p
 TIMEZONE_NAME = 'Europe/Moscow'
 TIMEZONE = timezone(TIMEZONE_NAME)
 
+
 def init_db():
-    # Подключаемся к postgres для создания базы данных
     try:
         conn = psycopg2.connect(
             dbname='postgres',
@@ -37,28 +35,25 @@ def init_db():
             port=port
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        
+
         with conn.cursor() as cur:
-            # Проверяем существование базы данных
             cur.execute(f'SELECT 1 FROM pg_database WHERE datname = %s', (DATABASE_NAME,))
             exists = cur.fetchone()
-            
+
             if not exists:
-                # Создаем базу данных
                 cur.execute(f'CREATE DATABASE {DATABASE_NAME}')
                 print(f'База данных {DATABASE_NAME} успешно создана')
                 cur.execute(f"SET TIMEZONE = '{TIMEZONE_NAME}'")
                 print(f'Выставлен часовой пояс {TIMEZONE_NAME}')
             else:
                 print(f'База данных {DATABASE_NAME} уже существует')
-                
+
     except Exception as e:
         print(f'Ошибка при инициализации базы данных: {e}')
     finally:
         if 'conn' in locals() and conn:
             conn.close()
-            
-    # Создаем движок для работы с SQLAlchemy
+
     try:
         test_engine = create_engine(DATABASE_URL)
         with test_engine.connect() as conn:
@@ -66,19 +61,17 @@ def init_db():
     except Exception as e:
         print(f'Ошибка при тестовом подключении: {e}')
 
-# Создаем движок для работы с нашей базой данных
+
 engine = create_engine(DATABASE_URL)
 
-# Создаем фабрику сессий
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Базовый класс для моделей
 Base = declarative_base()
 
-# Функция для получения сессии БД
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close() 
+        db.close()

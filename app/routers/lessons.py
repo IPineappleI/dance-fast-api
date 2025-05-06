@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_teacher, get_current_student, get_current_user
 from app.database import get_db, TIMEZONE
+from app.email import send_new_group_lesson_email, send_lesson_cancelled_email, send_lesson_rescheduled_email, \
+    send_new_individual_lesson_email, send_new_lesson_request_email, send_lesson_request_accepted_email, \
+    send_lesson_request_declined_email
 from app.routers.classrooms import search_available_classrooms
 from app.models import User, Admin, Teacher, Student, Group, Lesson, LessonType, Classroom
 from app.models import Subscription, SubscriptionTemplate
@@ -209,6 +212,24 @@ def get_student_parallel_lesson(student_id, start_time, finish_time, db: Session
     return student_parallel_lesson
 
 
+def get_group_parallel_lesson(group_id, start_time, finish_time, db: Session):
+    start_time = start_time.astimezone(TIMEZONE)
+    finish_time = finish_time.astimezone(TIMEZONE)
+    group_parallel_lesson = db.query(Lesson).where(
+        Lesson.group_id == group_id,
+        Lesson.terminated == False,
+        or_(
+            and_(start_time >= Lesson.start_time,
+                 start_time < Lesson.finish_time),
+            and_(finish_time > Lesson.start_time,
+                 finish_time <= Lesson.finish_time),
+            and_(start_time <= Lesson.start_time,
+                 finish_time >= Lesson.finish_time)
+        )
+    ).first()
+    return group_parallel_lesson
+
+
 @router.post('/', response_model=LessonInfo, status_code=status.HTTP_201_CREATED)
 async def create_lesson(
         lesson_data: LessonCreate,
@@ -219,6 +240,16 @@ async def create_lesson(
         get_and_check_group(lesson_data.group_id, db)
 
     await check_lesson_data(lesson_data, lesson_data.group_id, db)
+
+    if lesson_data.group_id:
+        parallel_lesson = get_group_parallel_lesson(
+            lesson_data.group_id, lesson_data.start_time, lesson_data.finish_time, db
+        )
+        if parallel_lesson:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='У группы уже есть пересекающееся по времени занятие'
+            )
 
     lesson = Lesson(
         name=lesson_data.name,
@@ -233,6 +264,10 @@ async def create_lesson(
     )
     db.add(lesson)
     db.commit()
+
+    if lesson.group_id:
+        await send_new_group_lesson_email(lesson, db)
+
     db.refresh(lesson)
 
     return lesson
@@ -304,6 +339,9 @@ async def create_individual_lesson(
     db.add(teacher_lesson)
 
     db.commit()
+
+    await send_new_individual_lesson_email(lesson)
+
     db.refresh(lesson)
 
     return lesson
@@ -324,13 +362,22 @@ async def create_group_lesson(
 
     await check_lesson_data(lesson_data, True, db)
 
-    parallel_lesson = get_teacher_parallel_lesson(
+    group_parallel_lesson = get_group_parallel_lesson(
+        lesson_data.group_id, lesson_data.start_time, lesson_data.finish_time, db
+    )
+    if group_parallel_lesson:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='У группы уже есть пересекающееся по времени занятие'
+        )
+
+    teacher_parallel_lesson = get_teacher_parallel_lesson(
         current_teacher.id,
         lesson_data.start_time,
         lesson_data.finish_time,
         db
     )
-    if parallel_lesson:
+    if teacher_parallel_lesson:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Преподаватель уже связан с пересекающимся по времени занятием'
@@ -357,6 +404,9 @@ async def create_group_lesson(
     db.add(teacher_lesson)
 
     db.commit()
+
+    await send_new_group_lesson_email(lesson, db)
+
     db.refresh(lesson)
 
     return lesson
@@ -431,6 +481,9 @@ async def create_lesson_request(
     db.add(teacher_lesson)
 
     db.commit()
+
+    await send_new_lesson_request_email(lesson)
+
     db.refresh(lesson)
 
     return lesson
@@ -475,8 +528,12 @@ async def respond_to_lesson_request(
         )
         request.classroom_id = response.classroom_id
         request.is_confirmed = True
+
+        await send_lesson_request_accepted_email(request)
     else:
         request.terminated = True
+
+        await send_lesson_request_declined_email(request)
 
     db.commit()
     db.refresh(request)
@@ -794,19 +851,25 @@ async def patch_lesson(
 
     await check_lesson_data(lesson_data, group_id, db, existing_lesson=lesson)
 
-    if lesson_data.terminated:
-        db.query(TeacherLesson).where(
-            TeacherLesson.lesson_id == lesson_id
-        ).delete()
-
-        db.query(LessonSubscription).where(
-            LessonSubscription.lesson_id == lesson_id
-        ).update(
-            {LessonSubscription.cancelled: True}
-        )
+    old_terminated = lesson.terminated
+    old_start_time = lesson.start_time
 
     for field, value in lesson_data.model_dump(exclude_unset=True).items():
         setattr(lesson, field, value)
+
+    if not old_terminated:
+        if lesson.terminated:
+            await send_lesson_cancelled_email(lesson, db)
+            db.query(TeacherLesson).where(
+                TeacherLesson.lesson_id == lesson_id
+            ).delete()
+            db.query(LessonSubscription).where(
+                LessonSubscription.lesson_id == lesson_id
+            ).update(
+                {LessonSubscription.cancelled: True}
+            )
+        elif lesson.start_time != old_start_time:
+            await send_lesson_rescheduled_email(lesson, db)
 
     db.commit()
     db.refresh(lesson)

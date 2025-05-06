@@ -8,7 +8,6 @@ from app.routers import auth, events, eventTypes, classrooms, subscriptionTempla
     statistics
 import os
 
-
 print('Запуск приложения...')
 print(f'DATABASE_URL в окружении: {os.getenv('DATABASE_URL')}')
 
@@ -17,11 +16,7 @@ print(f'DATABASE_URL в окружении: {os.getenv('DATABASE_URL')}')
 async def lifespan(app: FastAPI):
     print('Запуск события startup')
     try:
-        # Создаем базу данных, если её нет
         init_db()
-
-        # Создаем все таблицы
-        # Base.metadata создаёт все таблицы из моделей, которые наследуются от Base
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f'Ошибка при инициализации: {e}')
@@ -36,7 +31,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -45,7 +39,6 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-# Подключение роутеров
 app.include_router(admins.router)
 app.include_router(auth.router)
 app.include_router(classrooms.router)

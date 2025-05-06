@@ -9,6 +9,7 @@ from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db, TIMEZONE
 from app.models import User, Admin, Event, EventType
 from app.schemas.event import *
+from app.email import send_new_event_email, send_event_rescheduled_email, send_event_cancelled_email
 
 import uuid
 
@@ -53,6 +54,9 @@ async def create_event(
 
     db.add(event)
     db.commit()
+
+    await send_new_event_email(event, db)
+
     db.refresh(event)
 
     return event
@@ -167,6 +171,7 @@ async def patch_event(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Мероприятие не найдено'
         )
+
     if event_data.start_time:
         event_data.start_time = event_data.start_time.astimezone(TIMEZONE)
 
@@ -183,9 +188,22 @@ async def patch_event(
                 detail='Тип мероприятия не активен'
             )
 
+    old_terminated = event.terminated
+    old_start_time = event.start_time
+
     for field, value in event_data.model_dump(exclude_unset=True).items():
         setattr(event, field, value)
 
     db.commit()
+
+    if not old_terminated:
+        if event.terminated:
+            await send_event_cancelled_email(event, db)
+        elif event.start_time != old_start_time:
+            await send_event_rescheduled_email(event, db)
+    elif not event.terminated:
+        await send_event_rescheduled_email(event, db)
+
     db.refresh(event)
+
     return event

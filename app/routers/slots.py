@@ -182,27 +182,25 @@ def get_available_slots(slots, date_from, date_to, db):
         current_datetime = date_from
         current_datetime = current_datetime.replace(hour=slot.start_time.hour, minute=slot.start_time.minute)
 
-        while current_datetime < date_from or current_datetime < now or current_datetime.weekday() != slot.day_of_week:
+        while current_datetime < now or current_datetime.weekday() != slot.day_of_week:
             current_datetime = current_datetime + timedelta(days=1)
 
         while current_datetime <= date_to:
             finish_datetime = current_datetime.replace(hour=slot.end_time.hour, minute=slot.end_time.minute)
-            if finish_datetime <= date_to:
-                parallel_lesson = get_teacher_parallel_lesson(
-                    slot.teacher_id,
-                    current_datetime,
-                    finish_datetime,
-                    db
-                )
-                if not parallel_lesson:
-                    available_slots.append(
-                        SlotAvailable(
-                            teacher=slot.teacher,
-                            start_time=current_datetime,
-                            finish_time=finish_datetime
-                        )
+            parallel_lesson = get_teacher_parallel_lesson(
+                slot.teacher_id,
+                current_datetime,
+                finish_datetime,
+                db
+            )
+            if not parallel_lesson:
+                available_slots.append(
+                    SlotAvailable(
+                        teacher=slot.teacher,
+                        start_time=current_datetime,
+                        finish_time=finish_datetime
                     )
-
+                )
             current_datetime = current_datetime + timedelta(days=7)
 
     return available_slots

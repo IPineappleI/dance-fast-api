@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db
+from app.email import send_new_payment_type_email, send_payment_type_terminated_email
 from app.models import User, Admin, PaymentType
 from app.schemas.paymentType import *
 
@@ -30,6 +31,9 @@ async def create_payment_type(
 
     db.add(payment_type)
     db.commit()
+
+    await send_new_payment_type_email(payment_type, db)
+
     db.refresh(payment_type)
 
     return payment_type
@@ -93,10 +97,18 @@ async def patch_payment_type(
             detail='Тип платежа не найден'
         )
 
+    old_terminated = payment_type.terminated
+
     for field, value in payment_type_data.model_dump(exclude_unset=True).items():
         setattr(payment_type, field, value)
 
     db.commit()
+
+    if payment_type.terminated and not old_terminated:
+        await send_payment_type_terminated_email(payment_type, db)
+    elif not payment_type.terminated and old_terminated:
+        await send_new_payment_type_email(payment_type, db)
+
     db.refresh(payment_type)
 
     return payment_type

@@ -9,6 +9,7 @@ class UserInfo(BaseModel):
     id: uuid.UUID
     email: EmailStr
     email_confirmed: bool
+    receive_email: bool
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
@@ -23,6 +24,7 @@ class UserInfo(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
+    receive_email: Optional[bool] = None
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
@@ -53,6 +55,7 @@ class UserFilters(BaseModel):
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    receive_email: Optional[bool] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     middle_name: Optional[str] = None

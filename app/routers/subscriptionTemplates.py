@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.jwt import get_current_admin, get_current_user
 from app.database import get_db, TIMEZONE
+from app.email import send_new_subscription_template_email
 from app.models import User, Admin, SubscriptionTemplate, SubscriptionLessonType, LessonType
 from app.schemas.subscriptionTemplate import *
 
@@ -59,6 +60,9 @@ async def create_subscription_template(
 
     db.add(subscription_template)
     db.commit()
+
+    await send_new_subscription_template_email(subscription_template, db)
+
     db.refresh(subscription_template)
 
     return subscription_template

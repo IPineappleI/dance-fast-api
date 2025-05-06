@@ -13,12 +13,10 @@ from app.models.user import User
 from app.models.admin import Admin
 from app.schemas.token import TokenData
 
-# Константы
 ALGORITHM = settings.ALGORITHM
 SECRET_KEY = settings.SECRET_KEY
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
-# Схема OAuth2 для получения токена через форму логина
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
 
 

@@ -8,19 +8,21 @@ from typing import Optional
 # Загрузка переменных окружения из файла .env
 load_dotenv()
 
+
 class Settings(BaseSettings):
     # Настройки базы данных
     DATABASE_URL: str
     DATABASE_NAME: str
+
     # Настройки приложения
     APP_NAME: str
     APP_VERSION: str
     DEBUG: bool
-    
+
     # Настройки сервера
     HOST: str
     PORT: int
-    
+
     # Настройки JWT авторизации
     SECRET_KEY: str
     ALGORITHM: Optional[str] = 'HS256'
@@ -45,5 +47,5 @@ class Settings(BaseSettings):
         env_file_encoding = 'utf-8'
         case_sensitive = True
 
-# Создание экземпляра настроек
-settings = Settings() 
+
+settings = Settings()

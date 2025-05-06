@@ -4,13 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from email.message import EmailMessage
 
 from app.config import settings
 from app.database import get_db
 from app.auth.password import verify_password, get_password_hash
 from app.auth.jwt import create_token, get_current_user, verify_token
-from app.email import send_email
+from app.email import send_email_confirmation_token
 from app.models import User, Admin, Teacher, Student, Level
 from app.schemas.token import *
 from app.schemas.admin import *
@@ -25,23 +24,6 @@ router = APIRouter(
     prefix='/auth',
     tags=['authentication']
 )
-
-
-async def send_email_confirmation_token(user_id, email):
-    expires_delta = timedelta(minutes=EMAIL_CONFIRMATION_TOKEN_EXPIRE_MINUTES)
-
-    email_confirmation_token = create_token(
-        data={'user_id': str(user_id)},
-        expires_delta=expires_delta
-    )
-
-    message = EmailMessage()
-    message['To'] = email
-    message['Subject'] = 'Школа танцев. Подтверждение адреса электронной почты'
-    message.set_content(f'Пожалуйста, подтвердите адрес электронной почты, перейдя по следующей ссылке:\n'
-                        f'http://localhost:8000/auth/confirm-email/{email_confirmation_token}')
-
-    await send_email(message)
 
 
 async def create_user(user_data, db: Session):
@@ -62,6 +44,7 @@ async def create_user(user_data, db: Session):
     hashed_password = get_password_hash(user_data.password)
     user = User(
         email=user_data.email,
+        receive_email=user_data.receive_email,
         hashed_password=hashed_password,
         first_name=user_data.first_name,
         last_name=user_data.last_name,
@@ -74,7 +57,7 @@ async def create_user(user_data, db: Session):
     db.commit()
 
     try:
-        await send_email_confirmation_token(user.id, user.email)
+        await send_email_confirmation_token(user.id, user.email, user.first_name)
     except Exception as e:
         db.query(User).where(User.id == user.id).delete()
         db.commit()
@@ -160,6 +143,34 @@ async def register_student(
     return student
 
 
+@router.get('/confirm-email/{confirmation_token}')
+async def confirm_email(
+        confirmation_token: str,
+        db: Session = Depends(get_db)
+):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail='Невалидный токен подтверждения адреса электронной почты',
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+
+    token_data = verify_token(confirmation_token, credentials_exception)
+
+    user = db.query(User).where(User.id == token_data.id).first()
+    if user is None:
+        raise credentials_exception
+    if user.terminated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Ваш аккаунт был деактивирован'
+        )
+
+    user.email_confirmed = True
+    db.commit()
+
+    return 'Адрес электронной почты подтверждён успешно'
+
+
 @router.post('/token', response_model=Token)
 async def login_for_access_token(
         form_data: OAuth2PasswordRequestForm = Depends(),
@@ -191,35 +202,6 @@ async def login_for_access_token(
     )
 
     return {'access_token': access_token, 'token_type': 'bearer'}
-
-
-@router.get('/confirm-email/{confirmation_token}', response_model=UserInfo)
-async def confirm_email(
-        confirmation_token: str,
-        db: Session = Depends(get_db)
-):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail='Невалидный токен подтверждения адреса электронной почты',
-        headers={'WWW-Authenticate': 'Bearer'},
-    )
-
-    token_data = verify_token(confirmation_token, credentials_exception)
-
-    user = db.query(User).where(User.id == token_data.id).first()
-    if user is None:
-        raise credentials_exception
-    if user.terminated:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Ваш аккаунт был деактивирован'
-        )
-
-    user.email_confirmed = True
-    db.commit()
-    db.refresh(user)
-
-    return user
 
 
 @router.get('/me', response_model=Union[StudentFullInfoWithRole, TeacherFullInfoWithRole, AdminFullInfoWithRole])
