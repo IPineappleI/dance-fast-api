@@ -816,10 +816,11 @@ async def get_lesson_full_info_by_id(
 
         if current_user.student not in lesson.actual_students:
             lesson.fitting_subscriptions = [subscription for subscription in current_user.student.subscriptions
-                                            if lesson.lesson_type in subscription.subscription_template.lesson_types
-                                            and subscription.lessons_left > 0 and
-                                            (not subscription.expiration_date
-                                             or subscription.expiration_date > datetime.now(TIMEZONE))]
+                                            if subscription.payment and not subscription.payment.terminated
+                                            and subscription.lessons_left > 0
+                                            and lesson.lesson_type in subscription.subscription_template.lesson_types
+                                            and (not subscription.expiration_date
+                                                 or subscription.expiration_date > datetime.now(TIMEZONE))]
         else:
             lesson.used_subscription = [subscription for subscription in current_user.student.subscriptions
                                         if lesson in subscription.lessons][0]

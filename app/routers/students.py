@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.jwt import get_current_user
 from app.database import get_db, TIMEZONE
 from app.routers.auth import patch_user
-from app.models import User, Student, Level, Group, Lesson, Subscription, Payment
+from app.models import User, Student, Level, Group, Lesson, Subscription, Payment, SubscriptionTemplate
 from app.models.association import *
 from app.schemas.student import *
 
@@ -169,21 +169,19 @@ async def patch_student(
 
 
 def get_fitting_subscriptions(student, group, db):
-    fitting_subscriptions = db.query(Subscription).join(Payment).where(
-        Subscription.student_id == student.id,
-        or_(
-            Subscription.expiration_date == None,
-            Subscription.expiration_date > datetime.now(TIMEZONE)
-        ),
-        Payment.terminated == False,
-        ~db.query(Lesson).where(
+    fitting_subscriptions = [subscription for subscription in student.subscriptions
+                             if subscription.payment and not subscription.payment.terminated
+                             and subscription.lessons_left > 0
+                             and (not subscription.expiration_date
+                                  or subscription.expiration_date > datetime.now(TIMEZONE))
+                             and not db.query(Lesson).where(
             Lesson.group_id == group.id,
             Lesson.start_time > datetime.now(TIMEZONE),
             Lesson.terminated == False,
             Lesson.is_confirmed == True,
-            ~Lesson.lesson_type_id.in_(Subscription.lesson_type_ids)
-        ).exists()
-    ).all()
+            ~Lesson.lesson_type_id.in_([lesson_type.id for lesson_type
+                                        in subscription.subscription_template.lesson_types])
+        ).first()]
 
     return fitting_subscriptions
 

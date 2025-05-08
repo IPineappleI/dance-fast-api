@@ -51,16 +51,6 @@ class Subscription(BaseModel):
     )
 
     @hybrid_property
-    def lesson_type_ids(self):
-        return [subscription_lesson_type.lesson_type_id for subscription_lesson_type in self.subscription_lesson_types]
-
-    @lesson_type_ids.expression
-    def lesson_type_ids(cls):
-        return select(SubscriptionLessonType.lesson_type_id).where(
-            SubscriptionLessonType.subscription_template_id == cls.subscription_template_id
-        )
-
-    @hybrid_property
     def lessons_left(self):
         return self.subscription_template.lesson_count - len(self.active_lesson_subscriptions)
 
