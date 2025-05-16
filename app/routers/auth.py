@@ -102,7 +102,7 @@ async def patch_user(user_id, user_data: UserUpdate, db: Session):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Email уже используется'
             )
-        await send_email_confirmation_token(user.id, user_data.email)
+        await send_email_confirmation_token(user.id, user_data.email, user.first_name)
         user.email_confirmed = False
 
     for field, value in user_data.model_dump(exclude_unset=True).items():
